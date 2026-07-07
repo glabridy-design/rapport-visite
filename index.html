@@ -223,7 +223,6 @@
 </div>
 
 <script>
-    // Enregistrement de la PWA pour le mode hors-ligne
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
     }
@@ -237,7 +236,6 @@
     let puceSelectionneeId = null;
 
     window.addEventListener('DOMContentLoaded', () => {
-        // Restaurer la configuration Cloud et le dernier chantier au démarrage
         document.getElementById('cloudUser').value = localStorage.getItem('git_user') || '';
         document.getElementById('cloudRepo').value = localStorage.getItem('git_repo') || '';
         document.getElementById('cloudToken').value = localStorage.getItem('git_token') || '';
@@ -256,11 +254,9 @@
         alert("Configuration GitHub enregistrée localement !");
     }
 
-    // SAUVEGARDE ET SYNCHRONISATION DIRECTE SUR GITHUB
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
         
-        // 1. Sauvegarde locale immédiate (sécurité terrain)
         localStorage.setItem('chantier_pwa_save', JSON.stringify(chantierActuel));
         rafraichirVueAccueil();
 
@@ -269,12 +265,12 @@
         const token = localStorage.getItem('git_token');
 
         if(!user || !repo || !token) {
-            alert("Sauvegardé localement. Configurez vos identifiants GitHub sur l'accueil pour synchroniser dans le cloud.");
+            alert("Sauvegardé localement dans cet appareil. Configurez GitHub pour synchroniser.");
             return;
         }
 
         if(!navigator.onLine) {
-            alert("Sauvegardé localement ! L'envoi vers GitHub se fera dès que vous retrouverez du réseau.");
+            alert("Sauvegardé localement. Envoi auto dès que le réseau revient !");
             return;
         }
 
@@ -283,7 +279,6 @@
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
 
         try {
-            // Vérifier si le fichier existe déjà pour récupérer son SHA (requis par GitHub pour mettre à jour)
             let sha = null;
             const resCheck = await fetch(url, { headers: { "Authorization": `token ${token}` } });
             if(resCheck.ok) {
@@ -303,14 +298,13 @@
                 body: JSON.stringify(bodyData)
             });
 
-            if(resPush.ok) alert("☁️ Synchronisé avec succès sur GitHub ! Vos autres appareils peuvent le récupérer.");
+            if(resPush.ok) alert("☁️ Rapport sauvegardé et envoyé sur le cloud GitHub !");
             else alert("Erreur lors de la synchronisation GitHub.");
         } catch(e) {
             alert("Erreur réseau de synchronisation.");
         }
     }
 
-    // CHARGER LES DONNEES DEPUIS GITHUB (QUAND ON CHANGE D'APPAREIL)
     async function chargerDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -335,9 +329,8 @@
         }
     }
 
-    // --- LOGIQUE METIER CLASSIQUE CONSERVÉE ---
     function rafraichirListeNiveauxTemporaire() {
-        document.getElementById('listeNiveauxTemporaire').innerHTML = niveauxTemporaires.map((n, idx) => `<span class="enterprise-badge">📍 ${n.nom}</span>`).join('');
+        document.getElementById('listeNiveauxTemporaire').innerHTML = niveauxTemporaires.map((n) => `<span class="enterprise-badge">📍 ${n.nom}</span>`).join('');
     }
     function chargerImagePlanNiveau(event) {
         const file = event.target.files[0];
@@ -363,25 +356,41 @@
             input.value = "";
         }
     }
+
+    // FONCTION CRÉATION DU PREMIER RAPPORT FIXÉE
     function sauvegarderChantier(e) {
         e.preventDefault();
-        if(niveauxTemporaires.length === 0) return alert("Ajoutez un niveau");
+        if(niveauxTemporaires.length === 0) return alert("Veuillez ajouter au moins un niveau.");
+        
         chantierActuel = {
             id: Date.now(),
-            nom: document.getElementById('nom').value,
-            reference: document.getElementById('reference').value,
-            localisation: document.getElementById('localisation').value,
-            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: []
+            nom: document.getElementById('nom').value.trim(),
+            reference: document.getElementById('reference').value.trim(),
+            localisation: document.getElementById('localisation').value.trim(),
+            niveaux: niveauxTemporaires, 
+            entreprises: entreprisesTemporaires, 
+            puces: []
         };
-        sauvegarderEtSynchroniser();
-        changerPage('pageAccueil');
+        
+        localStorage.setItem('chantier_pwa_save', JSON.stringify(chantierActuel));
+        rafraichirVueAccueil();
+        ouvrirLeChantierCharge(); 
+        
+        // Nettoyage du formulaire pour la prochaine fois
+        document.getElementById('formChantier').reset();
+        niveauxTemporaires = [];
+        entreprisesTemporaires = [];
+        document.getElementById('listeNiveauxTemporaire').innerHTML = "";
+        document.getElementById('listeEntreprisesTemporaire').innerHTML = "";
     }
+
     function rafraichirVueAccueil() {
         const container = document.getElementById('listeChantiers');
         if (!chantierActuel) { container.innerHTML = "<p>Aucun chantier actif localement.</p>"; return; }
         container.innerHTML = `<div class="chantier-card" onclick="ouvrirLeChantierCharge()"><h3>${chantierActuel.nom}</h3><p>${chantierActuel.reference} - ${chantierActuel.localisation}</p></div>`;
     }
     function ouvrirLeChantierCharge() {
+        if(!chantierActuel) return;
         document.getElementById('viewNom').innerText = chantierActuel.nom;
         document.getElementById('viewRef').innerText = chantierActuel.reference;
         document.getElementById('viewLoc').innerText = chantierActuel.localisation;
@@ -391,6 +400,7 @@
         changerPage('pageChantierDetails');
     }
     function chargerPlanEtPucesDuNiveauActuel() {
+        if(!chantierActuel || !chantierActuel.niveaux[indexNiveauActuel]) return;
         document.getElementById('viewPlanImg').src = chantierActuel.niveaux[indexNiveauActuel].plan;
         rafraichirPucesGraphiques(); rafraichirTableauRemarques();
     }
@@ -414,6 +424,7 @@
     function rafraichirPucesGraphiques() {
         const container = document.getElementById('planContainer');
         container.querySelectorAll('.pin').forEach(p => p.remove());
+        if(!chantierActuel) return;
         chantierActuel.puces.forEach(p => {
             if (p.niveauNom === chantierActuel.niveaux[indexNiveauActuel].nom) {
                 const div = document.createElement('div'); div.className = 'pin' + (puceSelectionneeId === p.id ? ' selected' : '');
@@ -428,7 +439,7 @@
         document.getElementById('zoneSaisiePuce').style.display = 'block';
         document.getElementById('labelNumeroPuce').innerText = p.numero;
         document.getElementById('commentairePuce').value = p.commentaire;
-        document.getElementById('zoneEntreprisesPuceCheckboxes').innerHTML = chantierActuel.entreprises.map(e => `<label class="entreprise-checkbox-item"><input type="checkbox" value="${e}" ${p.entreprises.includes(e)?'checked':''}> ${e}</label>`).join('');
+        document.getElementById('zoneEntreprisesPuceCheckboxes').innerHTML = chantierActuel.entreprises.map(e => `<label class="entreprise-checkbox-item"><input type="checkbox" value="${e}" ${(p.entreprises || []).includes(e)?'checked':''}> ${e}</label>`).join('');
         document.getElementById('photoPreview').style.backgroundImage = p.photo ? `url(${p.photo})` : 'none';
         photoTemporaireBase64 = p.photo || "";
         rafraichirPucesGraphiques();
@@ -460,6 +471,17 @@
         const tbody = document.getElementById('corpsTableauRemarques');
         if(!chantierActuel || chantierActuel.puces.length === 0) { tbody.innerHTML = "<tr><td colspan='5'>Aucune remarque</td></tr>"; return; }
         tbody.innerHTML = chantierActuel.puces.map(p => `<tr><td><b>${p.numero}</b></td><td>${p.niveauNom}</td><td>${p.photo?'📷':'Non'}</td><td>${p.commentaire}</td><td>${p.dateCreation}</td></tr>`).join('');
+    }
+    function ajouterEntrepriseDirectTerrain() {
+        const input = document.getElementById('nomEntrepriseTerrainInput');
+        const nom = input.value.trim();
+        if(nom && chantierActuel) {
+            if(!chantierActuel.entreprises.includes(nom)) {
+                chantierActuel.entreprises.push(nom);
+                document.getElementById('viewEntreprises').innerHTML = chantierActuel.entreprises.map(e => `<span class="enterprise-badge">${e}</span>`).join('');
+                input.value = "";
+            }
+        }
     }
     function changerPage(pId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
