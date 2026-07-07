@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Visite de Chantier</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; color: #333; }
+        .app-container { max-width: 900px; margin: 20px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        
+        h1, h2, h3 { color: #1a73e8; margin-top: 0; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        /* Navigation */
+        .nav-bar { display: block; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; }
+        .nav-bar::after { content: ""; display: table; clear: both; }
+        .btn-back { float: left; background: #5f6368; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        
+        /* Formulaires */
+        label { display: block; margin: 14px 0 6px; font-weight: 600; font-size: 14px; color: #4a4a4a; }
+        input[type="text"], select, textarea { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 16px; background: #f8f9fa; transition: border 0.2s; }
+        input[type="text"]:focus, select:focus, textarea:focus { border-color: #1a73e8; background: white; outline: none; }
+        
+        /* Flexbox */
+        .flex-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .flex-row input { flex: 1; }
+        
+        /* Boutons */
+        .btn { background: #1a73e8; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; text-align: center; }
+        .btn:hover { background: #1557b0; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #d93025; }
+        .btn-danger:hover { background: #b3241b; }
+        .btn-small { width: auto; display: inline-block; padding: 8px 15px; font-size: 14px; margin: 0; }
+        
+        /* Cartes Accueil */
+        .chantier-card { background: #fff; border: 1px solid #dadce0; padding: 20px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
+        .chantier-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.08); border-color: #1a73e8; }
+        .enterprise-badge { display: inline-flex; align-items: center; gap: 5px; background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 12px; margin: 4px 4px 0 0; font-size: 13px; font-weight: 500; }
+        .enterprise-badge.danger { background: #fce8e6; color: #d93025; }
+        .enterprise-badge b { color: #d93025; cursor: pointer; margin-left: 3px; }
+        
+        /* Config Cloud Box */
+        .config-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+
+        /* Plan interactif */
+        .plan-wrapper { position: relative; width: 100%; overflow: auto; background: #eaeaea; border: 2px dashed #ccc; border-radius: 8px; margin-top: 10px; text-align: center; }
+        .plan-container { position: relative; display: inline-block; max-width: 100%; }
+        .plan-img { display: block; max-width: 100%; height: auto; user-select: none; -webkit-user-drag: none; }
+        
+        .pin { position: absolute; width: 18px; height: 18px; background: #d93025; color: white; border-radius: 50%; text-align: center; font-size: 10px; font-weight: bold; line-height: 14px; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer; }
+        .pin.selected { background: #1a73e8; z-index: 10; transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 3px rgba(26,115,232,0.4); }
+        
+        /* Tableaux */
+        .table-remarques { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table-remarques th, .table-remarques td { border: 1px solid #dadce0; padding: 10px; text-align: left; font-size: 14px; }
+        .table-remarques th { background: #f1f3f4; }
+        .thumb-preview { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; }
+        .photo-preview-box { width: 100%; height: 180px; border: 2px dashed #ccc; border-radius: 8px; margin-top: 8px; display: block; background: #f8f9fa; text-align: center; line-height: 180px; color: #666; font-size: 14px; background-size: cover; background-position: center; }
+        .entreprises-selection-list { max-height: 120px; overflow-y: auto; background: white; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; margin-top: 5px; }
+        .entreprise-checkbox-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer; }
+
+        @media print {
+            @page { size: auto; margin: 0mm; }
+            body { background: white; color: black; font-size: 11pt; padding: 15mm; }
+            .app-container { max-width: 100%; margin: 0; padding: 0; box-shadow: none; border: none; }
+            .section, .nav-bar, .no-print, form, button, input, textarea, select, .config-box { display: none !important; }
+            #printTemplate { display: block !important; }
+            .page-break { page-break-before: always; }
+            h1, h2, h3 { color: #000; border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 20px; }
+            .pdf-table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: avoid; }
+            .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 8px; font-size: 10pt; text-align: left; }
+            .pdf-table th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .photo-grid-table { width: 100%; border-collapse: separate; border-spacing: 15px; page-break-inside: avoid; }
+            .photo-grid-table td { width: 50%; vertical-align: top; border: 1px solid #ddd; padding: 10px; text-align: center; background: #fff; page-break-inside: avoid; }
+            .photo-grid-img { width: 100%; height: 240px; object-fit: contain; background: #fafafa; display: block; margin-bottom: 8px; border: 1px solid #eee; }
+            .photo-grid-caption { font-size: 10pt; font-weight: bold; color: #1a73e8; }
+            .pin { width: 18px !important; height: 18px !important; font-size: 10px !important; line-height: 14px !important; background-color: #d93025 !important; color: white !important; border: 2px solid white !important; transform: translate(-50%, -50%) scale(1) !important; box-shadow: none !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        #printTemplate { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div id="pageAccueil" class="section active">
+        <h1>Conducteur de Chantier PWA</h1>
+        
+        <div class="config-box">
+            <strong>🔑 Synchronisation Multi-Appareil GitHub :</strong><br>
+            <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
+                <input type="text" id="cloudUser" placeholder="Pseudo GitHub" style="flex:1; padding:6px; font-size:13px;">
+                <input type="text" id="cloudRepo" placeholder="Nom du Dépo" style="flex:1; padding:6px; font-size:13px;">
+                <input type="password" id="cloudToken" placeholder="GitHub Token (PAT)" style="flex:1; padding:6px; font-size:13px;">
+                <button class="btn btn-small" style="margin:0; background:#24292e;" onclick="sauvegarderConfigCloud()">Connecter</button>
+            </div>
+            <div style="margin-top:5px; font-size:11px; color:#666;">Les identifiants restent stockés en sécurité uniquement dans ce téléphone.</div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-success" style="flex:1; min-width:180px;" onclick="changerPage('pageCreer')">+ Créer un nouveau chantier</button>
+            <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerDepuisGitHub()">🔄 Télécharger depuis GitHub</button>
+        </div>
+        
+        <h2 style="margin-top: 35px; border-bottom: 2px solid #1a73e8; padding-bottom: 5px;">Chantier en cours de session</h2>
+        <div id="listeChantiers"></div>
+    </div>
+
+    <div id="pageCreer" class="section">
+        <div class="nav-bar"><button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button></div>
+        <h2>Nouveau Chantier</h2>
+        <form id="formChantier" onsubmit="sauvegarderChantier(event)">
+            <label for="nom">Nom du chantier :</label>
+            <input type="text" id="nom" required placeholder="Ex: Casino Trouville">
+            <label for="reference">Référence de l'affaire :</label>
+            <input type="text" id="reference" required placeholder="Ex: DL398_OPC">
+            <label for="localisation">Localisation :</label>
+            <input type="text" id="localisation" required placeholder="Ex: Trouville-sur-Mer">
+
+            <label>Plans par niveau :</label>
+            <div style="background:#f8f9fa; border:1px solid #dadce0; padding:15px; border-radius:8px; margin-bottom:15px;">
+                <div class="flex-row">
+                    <input type="text" id="nomNiveauInput" placeholder="Ex: RDC, R+1...">
+                    <input type="file" id="planInput" accept="image/*" onchange="chargerImagePlanNiveau(event)">
+                </div>
+                <button type="button" class="btn btn-small" style="background:#5f6368;" onclick="enregistrerNiveauDansListe()">+ Ajouter ce niveau</button>
+                <div id="listeNiveauxTemporaire" style="margin-top:10px; display: flex; gap: 5px;"></div>
+            </div>
+
+            <label>Entreprises :</label>
+            <div class="flex-row">
+                <input type="text" id="nomEntreprise" placeholder="Nom de l'entreprise...">
+                <button type="button" class="btn btn-small" onclick="ajouterEntreprise()">Ajouter</button>
+            </div>
+            <div id="listeEntreprisesTemporaire" style="min-height:40px; border:1px solid #dadce0; padding:8px; border-radius:8px; background:#f8f9fa; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:5px;"></div>
+
+            <button type="submit" class="btn">Créer l'affaire</button>
+        </form>
+    </div>
+
+    <div id="pageChantierDetails" class="section">
+        <div class="nav-bar">
+            <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour Accueil</button>
+            <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Enregistrer &amp; Synchro Cloud</button>
+        </div>
+        
+        <h1 id="viewNom">---</h1>
+        <div style="margin-bottom:15px; font-size:14px; color:#5f6368;">
+            <span style="margin-right:15px;"><strong>Ref :</strong> <span id="viewRef">---</span></span>
+            <span><strong>📍 Lieu :</strong> <span id="viewLoc">---</span></span>
+        </div>
+
+        <label>Entreprises associées :</label>
+        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:10px; border-radius:8px; margin-bottom:20px;">
+            <div id="viewEntreprises" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
+            <div class="flex-row" style="margin-bottom:0;">
+                <input type="text" id="nomEntrepriseTerrainInput" placeholder="Ajouter une entreprise..." style="padding:8px; font-size:14px;">
+                <button type="button" class="btn btn-small btn-success" onclick="ajouterEntrepriseDirectTerrain()">+ Inclure</button>
+            </div>
+        </div>
+
+        <div style="background:#edf2fa; border:1px solid #b4cff7; padding:12px; border-radius:8px; margin-bottom:15px;">
+            <label for="selectNiveauVisite" style="margin-top:0; color:#1a73e8;">Niveau actif :</label>
+            <select id="selectNiveauVisite" onchange="changerDeNiveauSurTerrain()"></select>
+        </div>
+
+        <h2>Plan interactif</h2>
+        <div class="plan-wrapper">
+            <div id="planContainer" class="plan-container">
+                <img id="viewPlanImg" class="plan-img" alt="Plan" onclick="placerPuce(event)">
+            </div>
+        </div>
+
+        <div id="zoneSaisiePuce" style="display:none; background:#edf2fa; border:1px solid #b4cff7; padding:15px; border-radius:8px; margin-top:20px;">
+            <h3>Saisie Puce N° <span id="labelNumeroPuce">X</span></h3>
+            <label>Prendre une photo :</label>
+            <input type="file" id="photoPuce" accept="image/*" onchange="chargerPhotoPuce(event)">
+            <div id="photoPreview" class="photo-preview-box">Aucune photo</div>
+
+            <label>Entreprises concernées :</label>
+            <div id="zoneEntreprisesPuceCheckboxes" class="entreprises-selection-list"></div>
+
+            <label>Observations :</label>
+            <textarea id="commentairePuce" rows="3"></textarea>
+
+            <div style="margin-top:15px; text-align:right;">
+                <button type="button" class="btn btn-danger btn-small" onclick="supprimerPuceActuelle()">Supprimer</button>
+                <button type="button" class="btn btn-success btn-small" onclick="sauvegarderDonniesPuce()">Valider ce point</button>
+            </div>
+        </div>
+
+        <h2>Observations du jour</h2>
+        <table class="table-remarques">
+            <thead>
+                <tr><th>N°</th><th>Niveau</th><th>Photo</th><th>Entreprises &amp; Constats</th><th>Date</th></tr>
+            </thead>
+            <tbody id="corpsTableauRemarques"></tbody>
+        </table>
+        
+        <button class="btn btn-danger" style="margin-top:40px;" onclick="fermerChantierActuel()">Fermer la session</button>
+    </div>
+</div>
+
+<div id="printTemplate">
+    <div style="margin-bottom:25px; border-bottom:1px solid #333; padding-bottom:15px;">
+        <h2 style="margin:0;">Rapport de Visite Chantier</h2>
+    </div>
+    <p><strong>Chantier :</strong> <span id="pdfNomChantier">---</span> | <strong>Ref :</strong> <span id="pdfRefChantier">---</span></p>
+    <p><strong>Lieu :</strong> <span id="pdfLocChantier">---</span> | <strong>Date :</strong> <span id="pdfDateVisite">---</span></p>
+    <div class="page-break"></div>
+    <h2>1. Plans et Puces</h2><div id="pdfPlansMultiples"></div>
+    <div class="page-break"></div>
+    <h2>2. Constatations</h2>
+    <table class="pdf-table"><thead><tr><th>N°</th><th>Niveau</th><th>Remarques</th></tr></thead><tbody id="pdfCorpsTableau"></tbody></table>
+    <div class="page-break"></div>
+    <h2>3. Photos</h2><div id="pdfPhotoPagesContainer"></div>
+</div>
+
+<script>
+    // Enregistrement de la PWA pour le mode hors-ligne
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+    }
+
+    let entreprisesTemporaires = [];
+    let niveauxTemporaires = []; 
+    let planEnCoursDeChargementBase64 = ""; 
+    let photoTemporaireBase64 = "";
+    let chantierActuel = null; 
+    let indexNiveauActuel = 0; 
+    let puceSelectionneeId = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        // Restaurer la configuration Cloud et le dernier chantier au démarrage
+        document.getElementById('cloudUser').value = localStorage.getItem('git_user') || '';
+        document.getElementById('cloudRepo').value = localStorage.getItem('git_repo') || '';
+        document.getElementById('cloudToken').value = localStorage.getItem('git_token') || '';
+        
+        const localData = localStorage.getItem('chantier_pwa_save');
+        if(localData) {
+            chantierActuel = JSON.parse(localData);
+            rafraichirVueAccueil();
+        }
+    });
+
+    function sauvegarderConfigCloud() {
+        localStorage.setItem('git_user', document.getElementById('cloudUser').value.trim());
+        localStorage.setItem('git_repo', document.getElementById('cloudRepo').value.trim());
+        localStorage.setItem('git_token', document.getElementById('cloudToken').value.trim());
+        alert("Configuration GitHub enregistrée localement !");
+    }
+
+    // SAUVEGARDE ET SYNCHRONISATION DIRECTE SUR GITHUB
+    async function sauvegarderEtSynchroniser() {
+        if(!chantierActuel) return;
+        
+        // 1. Sauvegarde locale immédiate (sécurité terrain)
+        localStorage.setItem('chantier_pwa_save', JSON.stringify(chantierActuel));
+        rafraichirVueAccueil();
+
+        const user = localStorage.getItem('git_user');
+        const repo = localStorage.getItem('git_repo');
+        const token = localStorage.getItem('git_token');
+
+        if(!user || !repo || !token) {
+            alert("Sauvegardé localement. Configurez vos identifiants GitHub sur l'accueil pour synchroniser dans le cloud.");
+            return;
+        }
+
+        if(!navigator.onLine) {
+            alert("Sauvegardé localement ! L'envoi vers GitHub se fera dès que vous retrouverez du réseau.");
+            return;
+        }
+
+        const fileName = `chantier_data.json`;
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${fileName}`;
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
+
+        try {
+            // Vérifier si le fichier existe déjà pour récupérer son SHA (requis par GitHub pour mettre à jour)
+            let sha = null;
+            const resCheck = await fetch(url, { headers: { "Authorization": `token ${token}` } });
+            if(resCheck.ok) {
+                const fileData = await resCheck.json();
+                sha = fileData.sha;
+            }
+
+            const bodyData = {
+                message: `Mise à jour chantier : ${chantierActuel.nom}`,
+                content: contentBase64
+            };
+            if(sha) bodyData.sha = sha;
+
+            const resPush = await fetch(url, {
+                method: "PUT",
+                headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify(bodyData)
+            });
+
+            if(resPush.ok) alert("☁️ Synchronisé avec succès sur GitHub ! Vos autres appareils peuvent le récupérer.");
+            else alert("Erreur lors de la synchronisation GitHub.");
+        } catch(e) {
+            alert("Erreur réseau de synchronisation.");
+        }
+    }
+
+    // CHARGER LES DONNEES DEPUIS GITHUB (QUAND ON CHANGE D'APPAREIL)
+    async function chargerDepuisGitHub() {
+        const user = localStorage.getItem('git_user');
+        const repo = localStorage.getItem('git_repo');
+        const token = localStorage.getItem('git_token');
+
+        if(!user || !repo || !token) { return alert("Veuillez remplir vos identifiants GitHub."); }
+
+        const fileName = `chantier_data.json`;
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${fileName}?ref=main`;
+
+        try {
+            const res = await fetch(url, { headers: { "Authorization": `token ${token}` } });
+            if(!res.ok) throw new Error();
+            const json = await res.json();
+            const decodedData = decodeURIComponent(escape(atob(json.content)));
+            chantierActuel = JSON.parse(decodedData);
+            localStorage.setItem('chantier_pwa_save', decodedData);
+            rafraichirVueAccueil();
+            alert("Affaire récupérée depuis le Cloud !");
+        } catch(e) {
+            alert("Aucun fichier trouvé sur GitHub ou erreur de token.");
+        }
+    }
+
+    // --- LOGIQUE METIER CLASSIQUE CONSERVÉE ---
+    function rafraichirListeNiveauxTemporaire() {
+        document.getElementById('listeNiveauxTemporaire').innerHTML = niveauxTemporaires.map((n, idx) => `<span class="enterprise-badge">📍 ${n.nom}</span>`).join('');
+    }
+    function chargerImagePlanNiveau(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) { planEnCoursDeChargementBase64 = e.target.result; };
+            reader.readAsDataURL(file);
+        }
+    }
+    function enregistrerNiveauDansListe() {
+        const inputNom = document.getElementById('nomNiveauInput');
+        if (inputNom.value.trim() && planEnCoursDeChargementBase64) {
+            niveauxTemporaires.push({ nom: inputNom.value.trim(), plan: planEnCoursDeChargementBase64 });
+            rafraichirListeNiveauxTemporaire();
+            inputNom.value = ""; planEnCoursDeChargementBase64 = "";
+        }
+    }
+    function ajouterEntreprise() {
+        const input = document.getElementById('nomEntreprise');
+        if (input.value.trim()) {
+            entreprisesTemporaires.push(input.value.trim());
+            document.getElementById('listeEntreprisesTemporaire').innerHTML = entreprisesTemporaires.map(e => `<span class="enterprise-badge">${e}</span>`).join('');
+            input.value = "";
+        }
+    }
+    function sauvegarderChantier(e) {
+        e.preventDefault();
+        if(niveauxTemporaires.length === 0) return alert("Ajoutez un niveau");
+        chantierActuel = {
+            id: Date.now(),
+            nom: document.getElementById('nom').value,
+            reference: document.getElementById('reference').value,
+            localisation: document.getElementById('localisation').value,
+            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: []
+        };
+        sauvegarderEtSynchroniser();
+        changerPage('pageAccueil');
+    }
+    function rafraichirVueAccueil() {
+        const container = document.getElementById('listeChantiers');
+        if (!chantierActuel) { container.innerHTML = "<p>Aucun chantier actif localement.</p>"; return; }
+        container.innerHTML = `<div class="chantier-card" onclick="ouvrirLeChantierCharge()"><h3>${chantierActuel.nom}</h3><p>${chantierActuel.reference} - ${chantierActuel.localisation}</p></div>`;
+    }
+    function ouvrirLeChantierCharge() {
+        document.getElementById('viewNom').innerText = chantierActuel.nom;
+        document.getElementById('viewRef').innerText = chantierActuel.reference;
+        document.getElementById('viewLoc').innerText = chantierActuel.localisation;
+        document.getElementById('selectNiveauVisite').innerHTML = chantierActuel.niveaux.map((n, i) => `<option value="${i}">${n.nom}</option>`).join('');
+        indexNiveauActuel = 0;
+        chargerPlanEtPucesDuNiveauActuel();
+        changerPage('pageChantierDetails');
+    }
+    function chargerPlanEtPucesDuNiveauActuel() {
+        document.getElementById('viewPlanImg').src = chantierActuel.niveaux[indexNiveauActuel].plan;
+        rafraichirPucesGraphiques(); rafraichirTableauRemarques();
+    }
+    function changerDeNiveauSurTerrain() {
+        indexNiveauActuel = parseInt(document.getElementById('selectNiveauVisite').value);
+        chargerPlanEtPucesDuNiveauActuel();
+    }
+    function placerPuce(event) {
+        const img = document.getElementById('viewPlanImg'); const rect = img.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100; const y = ((event.clientY - rect.top) / rect.height) * 100;
+        
+        if (puceSelectionneeId !== null) {
+            let p = chantierActuel.puces.find(p => p.id === puceSelectionneeId);
+            if(p) { p.x = x; p.y = y; rafraichirPucesGraphiques(); puceSelectionneeId = null; return; }
+        }
+        const num = chantierActuel.puces.length + 1;
+        const nPuce = { id: Date.now(), numero: num, niveauNom: chantierActuel.niveaux[indexNiveauActuel].nom, x, y, commentaire: "", photo: "", entreprises: [], dateCreation: new Date().toLocaleDateString() };
+        chantierActuel.puces.push(nPuce);
+        rafraichirPucesGraphiques(); selectionnerPuce(nPuce.id);
+    }
+    function rafraichirPucesGraphiques() {
+        const container = document.getElementById('planContainer');
+        container.querySelectorAll('.pin').forEach(p => p.remove());
+        chantierActuel.puces.forEach(p => {
+            if (p.niveauNom === chantierActuel.niveaux[indexNiveauActuel].nom) {
+                const div = document.createElement('div'); div.className = 'pin' + (puceSelectionneeId === p.id ? ' selected' : '');
+                div.style.left = p.x + '%'; div.style.top = p.y + '%'; div.innerText = p.numero;
+                div.onclick = (e) => { e.stopPropagation(); selectionnerPuce(p.id); };
+                container.appendChild(div);
+            }
+        });
+    }
+    function selectionnerPuce(id) {
+        puceSelectionneeId = id; const p = chantierActuel.puces.find(p => p.id === id); if(!p) return;
+        document.getElementById('zoneSaisiePuce').style.display = 'block';
+        document.getElementById('labelNumeroPuce').innerText = p.numero;
+        document.getElementById('commentairePuce').value = p.commentaire;
+        document.getElementById('zoneEntreprisesPuceCheckboxes').innerHTML = chantierActuel.entreprises.map(e => `<label class="entreprise-checkbox-item"><input type="checkbox" value="${e}" ${p.entreprises.includes(e)?'checked':''}> ${e}</label>`).join('');
+        document.getElementById('photoPreview').style.backgroundImage = p.photo ? `url(${p.photo})` : 'none';
+        photoTemporaireBase64 = p.photo || "";
+        rafraichirPucesGraphiques();
+    }
+    function chargerPhotoPuce(event) {
+        const file = event.target.files[0];
+        if(file) {
+            const r = new FileReader(); r.onload = (e) => { photoTemporaireBase64 = e.target.result; document.getElementById('photoPreview').style.backgroundImage = `url(${photoTemporaireBase64})`; };
+            r.readAsDataURL(file);
+        }
+    }
+    function sauvegarderDonniesPuce() {
+        const p = chantierActuel.puces.find(p => p.id === puceSelectionneeId);
+        if(p) {
+            p.commentaire = document.getElementById('commentairePuce').value; p.photo = photoTemporaireBase64;
+            p.entreprises = Array.from(document.querySelectorAll('#zoneEntreprisesPuceCheckboxes input:checked')).map(i => i.value);
+            document.getElementById('zoneSaisiePuce').style.display = 'none'; puceSelectionneeId = null;
+            rafraichirTableauRemarques(); rafraichirPucesGraphiques();
+            localStorage.setItem('chantier_pwa_save', JSON.stringify(chantierActuel));
+        }
+    }
+    function supprimerPuceActuelle() {
+        chantierActuel.puces = chantierActuel.puces.filter(p => p.id !== puceSelectionneeId);
+        chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
+        document.getElementById('zoneSaisiePuce').style.display = 'none'; puceSelectionneeId = null;
+        rafraichirPucesGraphiques(); rafraichirTableauRemarques();
+    }
+    function rafraichirTableauRemarques() {
+        const tbody = document.getElementById('corpsTableauRemarques');
+        if(!chantierActuel || chantierActuel.puces.length === 0) { tbody.innerHTML = "<tr><td colspan='5'>Aucune remarque</td></tr>"; return; }
+        tbody.innerHTML = chantierActuel.puces.map(p => `<tr><td><b>${p.numero}</b></td><td>${p.niveauNom}</td><td>${p.photo?'📷':'Non'}</td><td>${p.commentaire}</td><td>${p.dateCreation}</td></tr>`).join('');
+    }
+    function changerPage(pId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(pId).classList.add('active');
+    }
+    function fermerChantierActuel() { chantierActuel = null; changerPage('pageAccueil'); }
+    function declencherImpression() { window.print(); }
+</script>
+</body>
+</html>
