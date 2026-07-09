@@ -1,9 +1,10 @@
-const CACHE_NAME = 'conducteur-chantier-v3'; // On change le nom pour forcer la mise à jour
+const CACHE_NAME = 'Rapport-visite-chantier-v4'; // On change le nom pour forcer la mise à jour
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './sw.js'
+  './icon.png'
 ];
 
 // Installation : Mise en cache des fichiers de base
