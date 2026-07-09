@@ -71,12 +71,10 @@
             .section, .nav-bar, .no-print, form, button, input, textarea, select, .config-box { display: none !important; }
             #printTemplate { display: block !important; }
             .page-break { page-break-before: always; }
-            
             h1, h2, h3 { color: #000; border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 20px; }
             .pdf-table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: avoid; }
             .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 8px; font-size: 10pt; text-align: left; }
             .pdf-table th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            
             .photo-grid-table { width: 100%; border-collapse: separate; border-spacing: 15px; page-break-inside: avoid; }
             .photo-grid-table td { width: 50%; vertical-align: top; border: 1px solid #ddd; padding: 10px; text-align: center; background: #fff; page-break-inside: avoid; }
             .photo-grid-img { width: 100%; height: 240px; object-fit: contain; background: #fafafa; display: block; margin-bottom: 8px; border: 1px solid #eee; }
@@ -107,7 +105,9 @@
 
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-success" style="flex:1; min-width:180px;" onclick="changerPage('pageCreer')">+ Créer un nouveau chantier</button>
-            <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerIndexDepuisGitHub()">🔄 Synchroniser la liste depuis le Cloud</button>
+            <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerIndexDepuisGitHub()">🔄 Télécharger depuis le Cloud</button>
+            <button class="btn" style="flex:1; background: #0b57d0; min-width:180px;" onclick="document.getElementById('importLocalFileInput').click()">📁 Importer un fichier (.json / .visite)</button>
+            <input type="file" id="importLocalFileInput" accept=".json,.visite" style="display:none;" onchange="importerFichierChantierLocal(event)">
         </div>
         
         <h2 style="margin-top: 35px; border-bottom: 2px solid #1a73e8; padding-bottom: 5px;">Vos chantiers en cours</h2>
@@ -151,6 +151,7 @@
             <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour Accueil</button>
             <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
             <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Enregistrer &amp; Synchro Cloud</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter en fichier local</button>
         </div>
         
         <h1 id="viewNom">---</h1>
@@ -272,6 +273,10 @@
 </div>
 
 <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+    }
+
     let listeTousChantiers = [];
     let entreprisesTemporaires = [];
     let niveauxTemporaires = []; 
@@ -403,7 +408,65 @@
         } catch(e) { alert("Erreur réseau : " + e.message); }
     }
 
-    // CHARGEMENT LÉGER DE L'INDEX DEPUIS GITHUB (ÉVITE LA SATURATION MÉMOIRE)
+    // NOUVELLE LOGIQUE : EXPORTER LE CHANTIER ACTUEL EN FICHIER LOCAL (TELECHARGEMENT)
+    function exporterChantierEnFichierLocal() {
+        if(!chantierActuel) return;
+        
+        // Retirer la mention cloud temporaire pour que le fichier soit autonome
+        delete chantierActuel.surLeCloud;
+
+        const stringData = JSON.stringify(chantierActuel, null, 2);
+        const blob = new Blob([stringData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const nomFichierLocal = "chantier_" + chantierActuel.nom.replace(/\s+/g, '_') + ".visite";
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nomFichierLocal;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function importerFichierChantierLocal(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const chantierImporte = JSON.parse(e.target.result);
+                if(!chantierImporte.nom || !chantierImporte.niveaux) {
+                    alert("❌ Le fichier sélectionné n'est pas un fichier de chantier valide.");
+                    return;
+                }
+
+                if(!chantierImporte.id) chantierImporte.id = Date.now();
+                delete chantierImporte.surLeCloud;
+
+                const indexExistant = listeTousChantiers.findIndex(c => c.nom.toLowerCase() === chantierImporte.nom.toLowerCase());
+                if(indexExistant !== -1) {
+                    if(confirm(`🏢 Un chantier nommé "${chantierImporte.nom}" existe déjà. Remplacer sa version ?`)) {
+                        listeTousChantiers[indexExistant] = chantierImporte;
+                    } else { return; }
+                } else {
+                    listeTousChantiers.push(chantierImporte);
+                }
+
+                localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
+                rafraichirVueAccueil();
+                alert(`📁 Le chantier "${chantierImporte.nom}" a été importé en local !`);
+                ouvrirEtChargerChantier(chantierImporte.id);
+            } catch (err) {
+                alert("❌ Erreur de lecture du fichier.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+    }
+
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -422,7 +485,6 @@
                 return;
             }
             
-            // On reconstruit un index léger à partir des noms de fichiers pour ne pas saturer la PWA au démarrage
             listeTousChantiers = fichiersChantiers.map(f => {
                 const nomPropre = f.name.replace("chantier_", "").replace(".json", "").replace(/_/g, " ");
                 return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub Storage", surLeCloud: true, fileName: f.name };
@@ -473,6 +535,7 @@
             localisation: document.getElementById('localisation').value.trim(),
             niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: []
         };
+        
         listeTousChantiers.push(nouveauChantier);
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
         document.getElementById('formChantier').reset();
@@ -485,22 +548,22 @@
 
     function rafraichirVueAccueil() {
         const container = document.getElementById('listeChantiers');
-        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif.</p>"; return; }
+        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif. Cliquez sur le bouton vert ou importez un fichier.</p>"; return; }
         container.innerHTML = listeTousChantiers.map(c => `
             <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id || c.fileName}')">
                 <h3 style="margin:0;">🏢 ${c.nom}</h3>
                 <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
-                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Fichier disponible sur le Cloud (cliquez pour charger)' : `📊 ${c.puces ? c.puces.length : 0} observation(s)`}</div>
+                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Fichier sur le Cloud (cliquez pour charger)' : `📊 ${c.puces ? c.puces.length : 0} observation(s)`}</div>
             </div>
         `).join('');
     }
 
-    // CHARGEMENT À LA DEMANDE DES LOURDS FICHIERS DE CHANTIERS (EVITE TOUT BLOCAGE)
+    async function abrirEtChargerChantier() {}
+
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
 
-        // Si le chantier n'est qu'un index cloud temporaire, on va chercher son gros contenu JSON complet
         if(localTarget.surLeCloud) {
             const user = localStorage.getItem('git_user');
             const repo = localStorage.getItem('git_repo');
@@ -513,7 +576,6 @@
                 const decodedData = decodeURIComponent(escape(atob((await resFile.json()).content)));
                 chantierActuel = JSON.parse(decodedData);
                 
-                // Remplacer l'index par le vrai fichier complet dans notre mémoire
                 const idx = listeTousChantiers.findIndex(c => c.fileName == localTarget.fileName);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
@@ -524,7 +586,6 @@
             chantierActuel = localTarget;
         }
 
-        // Ouverture de la page terrain habituelle
         selectionnerChantierParId(chantierActuel.id);
     }
 
