@@ -1,29 +1,41 @@
-const CACHE_NAME = 'chantier-v1';
+const CACHE_NAME = 'conducteur-chantier-v3'; // On change le nom pour forcer la mise à jour
 const ASSETS = [
+  './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './sw.js'
 ];
 
-// Installation : Mise en cache des fichiers principaux
+// Installation : Mise en cache des fichiers de base
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    }).then(() => self.skipWaiting()) // Force l'activation immédiate
   );
 });
 
-// Activation et nettoyage des anciens caches
+// Activation : Nettoyage automatique des anciens caches obsolètes
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(keys.map((key) => {
-        if (key !== CACHE_NAME) return caches.delete(key);
-      }));
-    })
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-// Stratégie : Réseau d'abord, sinon Cache (pour avoir toujours la dernière version si connecté)
+// Stratégie réseau d'abord pour GitHub, sinon secours sur le cache hors-ligne
 self.addEventListener('fetch', (e) => {
+  // On laisse filer les requêtes vers l'API GitHub sans les bloquer dans le cache
+  if (e.request.url.includes('api.github.com')) {
+    return;
+  }
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );
