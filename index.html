@@ -372,6 +372,7 @@
         chargerCharteDepuisGitHub();
     }
 
+    // ARCHITECTURE INCRÉMENTALE : SAUVEGARDE SÉPARÉE STRUCTURE (PLAN) ET VISITE (PUCES)
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
         const index = listeTousChantiers.findIndex(c => c.id === chantierActuel.id);
@@ -386,87 +387,85 @@
         const token = localStorage.getItem('git_token');
         if(!user || !repo || !token) return alert("Sauvegardé localement.");
 
-        const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomFichierPropre}`;
-        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
+        const nomBase = chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_");
+        
+        const structureChantier = {
+            id: chantierActuel.id, nom: chantierActuel.nom, reference: chantierActuel.reference,
+            localisation: chantierActuel.localisation, niveaux: chantierActuel.niveaux, entreprises: chantierActuel.entreprises
+        };
+
+        const incrementVisite = { idChantier: chantierActuel.id, puces: chantierActuel.puces };
+        const urlIncrement = `https://api.github.com/repos/${user}/${repo}/contents/visite_${nomBase}.json`;
+        const jsonString = unescape(encodeURIComponent(JSON.stringify(incrementVisite)));
 
         try {
-            let sha = null;
-            const resCheck = await fetch(url, { headers: { "Authorization": `token ${token}` } });
-            if(resCheck.ok) { sha = (await resCheck.json()).sha; }
+            // Étape A : Pousser la structure lourde si elle n'existe pas encore
+            const urlStructure = `https://api.github.com/repos/${user}/${repo}/contents/structure_${nomBase}.json`;
+            const checkStructure = await fetch(urlStructure, { headers: { "Authorization": `token ${token}` } });
+            if(!checkStructure.ok) {
+                const stringStructure = unescape(encodeURIComponent(JSON.stringify(structureChantier)));
+                await fetch(urlStructure, {
+                    method: "PUT",
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: `Structure initiale : ${chantierActuel.nom}`, content: btoa(stringStructure) })
+                });
+            }
 
-            const bodyData = { message: `Mise à jour : ${chantierActuel.nom}`, content: contentBase64 };
-            if(sha) bodyData.sha = sha;
+            // Étape B : Pousser l'incrément de terrain (Ultra-léger)
+            let shaIncrement = null;
+            const checkIncrement = await fetch(urlIncrement, { headers: { "Authorization": `token ${token}` } });
+            if(checkIncrement.ok) { shaIncrement = (await checkIncrement.json()).sha; }
 
-            const resPush = await fetch(url, {
+            const bodyData = { message: `Incrément : ${chantierActuel.nom}`, content: btoa(jsonString), branch: "main" };
+            if(shaIncrement) bodyData.sha = shaIncrement;
+
+            const resPush = await fetch(urlIncrement, {
                 method: "PUT",
                 headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
             });
-            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé avec succès !`);
-            else alert("Erreur de transfert GitHub.");
+
+            if(resPush.ok) alert(`☁️ Centralisation réussie !\nDonnées de visite incrémentées avec succès.`);
+            else alert("Erreur lors de la synchronisation de l'incrément.");
         } catch(e) { alert("Erreur réseau : " + e.message); }
     }
 
-    // NOUVELLE LOGIQUE : EXPORTER LE CHANTIER ACTUEL EN FICHIER LOCAL (TELECHARGEMENT)
     function exporterChantierEnFichierLocal() {
         if(!chantierActuel) return;
-        
-        // Retirer la mention cloud temporaire pour que le fichier soit autonome
         delete chantierActuel.surLeCloud;
-
         const stringData = JSON.stringify(chantierActuel, null, 2);
         const blob = new Blob([stringData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        
         const nomFichierLocal = "chantier_" + chantierActuel.nom.replace(/\s+/g, '_') + ".visite";
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = nomFichierLocal;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.href = url; a.download = nomFichierLocal;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
     function importerFichierChantierLocal(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
                 const chantierImporte = JSON.parse(e.target.result);
-                if(!chantierImporte.nom || !chantierImporte.niveaux) {
-                    alert("❌ Le fichier sélectionné n'est pas un fichier de chantier valide.");
-                    return;
-                }
-
+                if(!chantierImporte.nom || !chantierImporte.niveaux) return alert("❌ Fichier non valide.");
                 if(!chantierImporte.id) chantierImporte.id = Date.now();
                 delete chantierImporte.surLeCloud;
 
-                const indexExistant = listeTousChantiers.findIndex(c => c.nom.toLowerCase() === chantierImporte.nom.toLowerCase());
-                if(indexExistant !== -1) {
-                    if(confirm(`🏢 Un chantier nommé "${chantierImporte.nom}" existe déjà. Remplacer sa version ?`)) {
-                        listeTousChantiers[indexExistant] = chantierImporte;
-                    } else { return; }
-                } else {
-                    listeTousChantiers.push(chantierImporte);
-                }
+                const idx = listeTousChantiers.findIndex(c => c.nom.toLowerCase() === chantierImporte.nom.toLowerCase());
+                if(idx !== -1) { if(confirm(`Remplacer la version locale de ${chantierImporte.nom} ?`)) listeTousChantiers[idx] = chantierImporte; else return; } 
+                else { listeTousChantiers.push(chantierImporte); }
 
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 rafraichirVueAccueil();
-                alert(`📁 Le chantier "${chantierImporte.nom}" a été importé en local !`);
+                alert(`📁 Fichier importé !`);
                 ouvrirEtChargerChantier(chantierImporte.id);
-            } catch (err) {
-                alert("❌ Erreur de lecture du fichier.");
-            }
+            } catch (err) { alert("❌ Erreur de lecture."); }
         };
-        reader.readAsText(file);
-        event.target.value = "";
+        reader.readAsText(file); event.target.value = "";
     }
 
+    // CONSTRUIRE UN INDEX LÉGER À PARTIR DES SOURCes DE STRUCTURE
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -478,88 +477,23 @@
             const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
             if(!res.ok) throw new Error();
             const fichiers = await res.json();
-            const fichiersChantiers = fichiers.filter(f => f.name.startsWith("chantier_") && f.name.endsWith(".json"));
+            const structures = fichiers.filter(f => f.name.startsWith("structure_") && f.name.endsWith(".json"));
             
-            if(fichiersChantiers.length === 0) {
-                alert("ℹ️ Aucun chantier trouvé sur le Cloud.");
-                return;
-            }
+            if(structures.length === 0) return alert("ℹ️ Aucun chantier sur le Cloud.");
             
-            listeTousChantiers = fichiersChantiers.map(f => {
-                const nomPropre = f.name.replace("chantier_", "").replace(".json", "").replace(/_/g, " ");
-                return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub Storage", surLeCloud: true, fileName: f.name };
+            listeTousChantiers = structures.map(f => {
+                const nomPropre = f.name.replace("structure_", "").replace(".json", "").replace(/_/g, " ");
+                return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub", surLeCloud: true, fileName: f.name };
             });
 
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
             await chargerCharteDepuisGitHub();
-            alert(`✅ Liste synchronisée ! ${listeTousChantiers.length} chantier(s) disponible(s).`);
+            alert(`✅ Index cloud synchronisé !`);
         } catch(e) { alert("Erreur d'importation."); }
     }
 
-    function rafraichirListeNiveauxTemporaire() {
-        document.getElementById('listeNiveauxTemporaire').innerHTML = niveauxTemporaires.map((n) => `<span class="enterprise-badge">📍 ${n.nom}</span>`).join('');
-    }
-    function chargerImagePlanNiveau(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) { compresserImage(e.target.result).then(c => planEnCoursDeChargementBase64 = c); };
-            reader.readAsDataURL(file);
-        }
-    }
-    function enregistrerNiveauDansListe() {
-        const inputNom = document.getElementById('nomNiveauInput');
-        if (inputNom.value.trim() && planEnCoursDeChargementBase64) {
-            niveauxTemporaires.push({ nom: inputNom.value.trim(), plan: planEnCoursDeChargementBase64 });
-            rafraichirListeNiveauxTemporaire();
-            inputNom.value = ""; planEnCoursDeChargementBase64 = "";
-        }
-    }
-    function ajouterEntreprise() {
-        const input = document.getElementById('nomEntreprise');
-        if (input.value.trim()) {
-            entreprisesTemporaires.push(input.value.trim());
-            document.getElementById('listeEntreprisesTemporaire').innerHTML = entreprisesTemporaires.map(e => `<span class="enterprise-badge">${e}</span>`).join('');
-            input.value = "";
-        }
-    }
-
-    function sauvegarderChantier(e) {
-        e.preventDefault();
-        if(niveauxTemporaires.length === 0) return alert("Veuillez ajouter au moins un niveau.");
-        const nouveauChantier = {
-            id: Date.now(),
-            nom: document.getElementById('nom').value.trim(),
-            reference: document.getElementById('reference').value.trim(),
-            localisation: document.getElementById('localisation').value.trim(),
-            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: []
-        };
-        
-        listeTousChantiers.push(nouveauChantier);
-        localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-        document.getElementById('formChantier').reset();
-        niveauxTemporaires = []; entreprisesTemporaires = [];
-        document.getElementById('listeNiveauxTemporaire').innerHTML = "";
-        document.getElementById('listeEntreprisesTemporaire').innerHTML = "";
-        rafraichirVueAccueil();
-        selectionnerChantierParId(nouveauChantier.id);
-    }
-
-    function rafraichirVueAccueil() {
-        const container = document.getElementById('listeChantiers');
-        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif. Cliquez sur le bouton vert ou importez un fichier.</p>"; return; }
-        container.innerHTML = listeTousChantiers.map(c => `
-            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id || c.fileName}')">
-                <h3 style="margin:0;">🏢 ${c.nom}</h3>
-                <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
-                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Fichier sur le Cloud (cliquez pour charger)' : `📊 ${c.puces ? c.puces.length : 0} observation(s)`}</div>
-            </div>
-        `).join('');
-    }
-
-    async function abrirEtChargerChantier() {}
-
+    // FUSION GRAPHIQUE AU CHARGEMENT : STRUCTURE + INCRÉMENT DE VISITE
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
@@ -568,23 +502,26 @@
             const user = localStorage.getItem('git_user');
             const repo = localStorage.getItem('git_repo');
             const token = localStorage.getItem('git_token');
-            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/${localTarget.fileName}`;
-            
+            const nomBase = localTarget.nom.replace(/\s+/g, "_");
+
             try {
-                const resFile = await fetch(urlFile, { headers: { "Authorization": `token ${token}` } });
-                if(!resFile.ok) throw new Error();
-                const decodedData = decodeURIComponent(escape(atob((await resFile.json()).content)));
-                chantierActuel = JSON.parse(decodedData);
-                
-                const idx = listeTousChantiers.findIndex(c => c.fileName == localTarget.fileName);
+                // 1. Lire la structure (plan d'architecture lourd)
+                const resStr = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/structure_${nomBase}.json`, { headers: { "Authorization": `token ${token}` } });
+                const structure = JSON.parse(decodeURIComponent(escape(atob((await resStr.json()).content))));
+
+                // 2. Lire l'incrément (puces légères du terrain)
+                const resInc = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/visite_${nomBase}.json`, { headers: { "Authorization": `token ${token}` } });
+                if(resInc.ok) {
+                    const increment = JSON.parse(decodeURIComponent(escape(atob((await resInc.json()).content))));
+                    structure.puces = increment.puces;
+                } else { structure.puces = []; }
+
+                chantierActuel = structure;
+                const idx = listeTousChantiers.findIndex(c => c.nom === localTarget.nom);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-            } catch(e) {
-                return alert("Impossible de télécharger le détail de ce chantier depuis GitHub.");
-            }
-        } else {
-            chantierActuel = localTarget;
-        }
+            } catch(e) { return alert("Erreur lors de la fusion du cloud."); }
+        } else { chantierActuel = localTarget; }
 
         selectionnerChantierParId(chantierActuel.id);
     }
@@ -690,6 +627,17 @@
                 input.value = "";
             }
         }
+    }
+    function rafraichirVueAccueil() {
+        const container = document.getElementById('listeChantiers');
+        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif.</p>"; return; }
+        container.innerHTML = listeTousChantiers.map(c => `
+            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id || c.fileName}')">
+                <h3 style="margin:0;">🏢 ${c.nom}</h3>
+                <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
+                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Fichier disponible sur le Cloud (cliquez pour charger)' : `📊 ${c.puces ? c.puces.length : 0} observation(s)`}</div>
+            </div>
+        `).join('');
     }
     function changerPage(pId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
