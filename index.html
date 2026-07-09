@@ -41,8 +41,6 @@
         .chantier-card { background: #fff; border: 1px solid #dadce0; padding: 20px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
         .chantier-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.08); border-color: #1a73e8; }
         .enterprise-badge { display: inline-flex; align-items: center; gap: 5px; background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 12px; margin: 4px 4px 0 0; font-size: 13px; font-weight: 500; }
-        .enterprise-badge.danger { background: #fce8e6; color: #d93025; }
-        .enterprise-badge b { color: #d93025; cursor: pointer; margin-left: 3px; }
         
         /* Config Cloud Box */
         .config-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
@@ -59,7 +57,6 @@
         .table-remarques { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .table-remarques th, .table-remarques td { border: 1px solid #dadce0; padding: 10px; text-align: left; font-size: 14px; }
         .table-remarques th { background: #f1f3f4; }
-        .thumb-preview { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; }
         .photo-preview-box { width: 100%; height: 180px; border: 2px dashed #ccc; border-radius: 8px; margin-top: 8px; display: block; background: #f8f9fa; text-align: center; line-height: 180px; color: #666; font-size: 14px; background-size: cover; background-position: center; }
         .entreprises-selection-list { max-height: 120px; overflow-y: auto; background: white; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; margin-top: 5px; }
         .entreprise-checkbox-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer; }
@@ -100,14 +97,13 @@
                 <input type="password" id="cloudToken" placeholder="GitHub Token (PAT)" style="flex:1; padding:6px; font-size:13px;">
                 <button class="btn btn-small" style="margin:0; background:#24292e;" onclick="sauvegarderConfigCloud()">Connecter</button>
             </div>
-            <div style="margin-top:5px; font-size:11px; color:#666;">Les identifiants et la charte graphique se synchronisent automatiquement.</div>
         </div>
 
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-success" style="flex:1; min-width:180px;" onclick="changerPage('pageCreer')">+ Créer un nouveau chantier</button>
-            <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerIndexDepuisGitHub()">🔄 Télécharger depuis le Cloud</button>
-            <button class="btn" style="flex:1; background: #0b57d0; min-width:180px;" onclick="document.getElementById('importLocalFileInput').click()">📁 Importer un fichier (.json / .visite)</button>
-            <input type="file" id="importLocalFileInput" accept=".json,.visite" style="display:none;" onchange="importerFichierChantierLocal(event)">
+            <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerIndexDepuisGitHub()">🔄 Télécharger la liste Cloud (.json)</button>
+            <button class="btn" style="flex:1; background: #0b57d0; min-width:180px;" onclick="document.getElementById('importLocalFileInput').click()">📁 Importer un fichier (.json)</button>
+            <input type="file" id="importLocalFileInput" accept=".json" style="display:none;" onchange="importerFichierChantierLocal(event)">
         </div>
         
         <h2 style="margin-top: 35px; border-bottom: 2px solid #1a73e8; padding-bottom: 5px;">Vos chantiers en cours</h2>
@@ -116,7 +112,7 @@
 
     <div id="pageCreer" class="section">
         <div class="nav-bar"><button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button></div>
-        <h2>Nouveau Chantier</h2>
+        <h2>Nouveau Chantier (Configuration Initiale)</h2>
         <form id="formChantier" onsubmit="sauvegarderChantier(event)">
             <label for="nom">Nom du chantier :</label>
             <input type="text" id="nom" required placeholder="Ex: Casino Trouville">
@@ -142,16 +138,17 @@
             </div>
             <div id="listeEntreprisesTemporaire" style="min-height:40px; border:1px solid #dadce0; padding:8px; border-radius:8px; background:#f8f9fa; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:5px;"></div>
 
-            <button type="submit" class="btn">Créer l'affaire</button>
+            <button type="submit" class="btn">Créer la configuration initiale</button>
         </form>
     </div>
 
     <div id="pageChantierDetails" class="section">
         <div class="nav-bar">
-            <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour Accueil</button>
+            <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button>
             <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Enregistrer &amp; Synchro Cloud</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter en fichier local</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Synchro Config (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter Config (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#ea4335;" onclick="exporterRapportDuJourIncr()">⏏️ Exporter Rapport du Jour (.json)</button>
         </div>
         
         <h1 id="viewNom">---</h1>
@@ -183,7 +180,7 @@
 
         <div id="zoneSaisiePuce" style="display:none; background:#edf2fa; border:1px solid #b4cff7; padding:15px; border-radius:8px; margin-top:20px;">
             <h3>Saisie Puce N° <span id="labelNumeroPuce">X</span></h3>
-            <label>Prendre une photo :</label>
+            <label>Photo constatation :</label>
             <input type="file" id="photoPuce" accept="image/*" onchange="chargerPhotoPuce(event)">
             <div id="photoPreview" class="photo-preview-box">Aucune photo</div>
 
@@ -199,15 +196,13 @@
             </div>
         </div>
 
-        <h2>Observations du jour</h2>
+        <h2>Observations du jour (Incrémentales)</h2>
         <table class="table-remarques">
             <thead>
                 <tr><th>N°</th><th>Niveau</th><th>Photo</th><th>Entreprises &amp; Constats</th><th>Date</th></tr>
             </thead>
             <tbody id="corpsTableauRemarques"></tbody>
         </table>
-        
-        <button class="btn btn-danger" style="margin-top:40px;" onclick="fermerChantierActuel()">Fermer la session</button>
     </div>
 </div>
 
@@ -273,10 +268,6 @@
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
-    }
-
     let listeTousChantiers = [];
     let entreprisesTemporaires = [];
     let niveauxTemporaires = []; 
@@ -311,9 +302,8 @@
             if(!res.ok) return;
             const json = await res.json();
             const decodedData = decodeURIComponent(escape(atob(json.content)));
-            const config = JSON.parse(decodedData);
             localStorage.setItem('charte_entreprise_pwa', decodedData);
-            appliquerConfigurationCharte(config);
+            appliquerConfigurationCharte(JSON.parse(decodedData));
         } catch(e) {
             const cacheCharte = localStorage.getItem('charte_entreprise_pwa');
             if(cacheCharte) appliquerConfigurationCharte(JSON.parse(cacheCharte));
@@ -359,7 +349,7 @@
                 canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
+                resolve(canvas.toDataURL('image/jpeg', 0.6)); // Compression légèrement plus forte pour optimiser la mémoire
             };
         });
     }
@@ -368,15 +358,15 @@
         localStorage.setItem('git_user', document.getElementById('cloudUser').value.trim());
         localStorage.setItem('git_repo', document.getElementById('cloudRepo').value.trim());
         localStorage.setItem('git_token', document.getElementById('cloudToken').value.trim());
-        alert("Configuration GitHub enregistrée ! Rapatriement de la Charte...");
+        alert("Configuration GitHub enregistrée !");
         chargerCharteDepuisGitHub();
     }
 
+    // SAUVEGARDE ET SYNCHRO DE LA CONFIG INITIALE DU CHANTIER
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
         const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
         if(index !== -1) listeTousChantiers[index] = chantierActuel;
-        else listeTousChantiers.push(chantierActuel);
 
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
         rafraichirVueAccueil();
@@ -384,18 +374,22 @@
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
         const token = localStorage.getItem('git_token');
-        if(!user || !repo || !token) return alert("Sauvegardé localement.");
+        if(!user || !repo || !token) return alert("Sauvegardé en local.");
 
         const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
         const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomFichierPropre}`;
-        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
+        
+        // Configuration épurée sans le poids mort des anciens rapports pour libérer la bande passante
+        const configAExporter = { ...chantierActuel };
+        
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(configAExporter))));
 
         try {
             let sha = null;
             const resCheck = await fetch(url, { headers: { "Authorization": `token ${token}` } });
             if(resCheck.ok) { sha = (await resCheck.json()).sha; }
 
-            const bodyData = { message: `Mise à jour : ${chantierActuel.nom}`, content: contentBase64 };
+            const bodyData = { message: `Mise à jour configuration : ${chantierActuel.nom}`, content: contentBase64 };
             if(sha) bodyData.sha = sha;
 
             const resPush = await fetch(url, {
@@ -403,24 +397,58 @@
                 headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
             });
-            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé avec succès !`);
-            else alert("Erreur de transfert GitHub.");
-        } catch(e) { alert("Erreur réseau : " + e.message); }
+            if(resPush.ok) alert(`☁️ Configuration globale du chantier "${chantierActuel.nom}" synchronisée !`);
+            else alert("Erreur de transfert Cloud.");
+        } catch(e) { alert("Erreur réseau."); }
     }
 
-    function exporterChantierEnFichierLocal() {
-        if(!chantierActuel) return;
-        delete chantierActuel.surLeCloud;
+    // EXPORTATION EXCLUSIVE D'UN RAPPORT DE VISITE INCRÉMENTAL DU JOUR (LIBÈRE LA MÉMOIRE)
+    function exporterRapportDuJourIncr() {
+        if(!chantierActuel || chantierActuel.puces.length === 0) {
+            return alert("Aucune puce saisie aujourd'hui pour générer un rapport.");
+        }
+        
+        const dateAujourdhui = new Date().toLocaleDateString('fr-FR').replace(/\//g, "-");
+        
+        // On isole uniquement les puces et l'état civil léger de l'affaire
+        const rapportIncr = {
+            type_fichier: "rapport_visite_incremental",
+            chantier_id: chantierActuel.id,
+            nom_chantier: chantierActuel.nom,
+            reference: chantierActuel.reference,
+            date_visite: dateAujourdhui,
+            constatations_puces: chantierActuel.puces // Uniquement les puces du jour
+        };
 
-        const stringData = JSON.stringify(chantierActuel, null, 2);
+        const stringData = JSON.stringify(rapportIncr, null, 2);
         const blob = new Blob([stringData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         
-        const nomFichierLocal = "chantier_" + chantierActuel.nom.replace(/\s+/g, '_') + ".visite";
+        const nomFichierLocal = `rapport_${chantierActuel.nom.replace(/\s+/g, '_')}_${dateAujourdhui}.json`;
         
         const a = document.createElement('a');
         a.href = url;
         a.download = nomFichierLocal;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Optionnel : Une fois le rapport du jour exporté, on peut purger la mémoire de l'écran pour le prochain contrôle
+        if(confirm("Voulez-vous vider les puces de l'écran pour libérer la mémoire graphique de l'appareil ? (Elles sont en sécurité dans votre fichier exporté)")) {
+            chantierActuel.puces = [];
+            chargerPlanEtPucesDuNiveauActuel();
+        }
+    }
+
+    function exporterChantierEnFichierLocal() {
+        if(!chantierActuel) return;
+        const stringData = JSON.stringify(chantierActuel, null, 2);
+        const blob = new Blob([stringData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chantier_${chantierActuel.nom.replace(/\s+/g, '_')}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -434,30 +462,43 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const chantierImporte = JSON.parse(e.target.result);
-                if(!chantierImporte.nom || !chantierImporte.niveaux) {
-                    alert("❌ Le fichier sélectionné n'est pas un fichier de chantier valide.");
+                const donneesImportees = JSON.parse(e.target.result);
+                
+                // CAS 1 : C'est un rapport incrémental du jour qu'on vient fusionner / ajouter
+                if(donneesImportees.type_fichier === "rapport_visite_incremental") {
+                    if(!chantierActuel || chantierActuel.id != donneesImportees.chantier_id) {
+                        return alert("❌ Impossible d'importer ce rapport : Ouvrez d'abord la configuration de chantier correspondante.");
+                    }
+                    // On incrémente les puces importées dans le chantier ouvert
+                    chantierActuel.puces = [...chantierActuel.puces, ...donneesImportees.constatations_puces];
+                    // Recalculer les numéros de puces pour éviter les doublons
+                    chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
+                    chargerPlanEtPucesDuNiveauActuel();
+                    alert(`✅ ${donneesImportees.constatations_puces.length} puces incrémentées avec succès sur vos plans !`);
                     return;
                 }
 
-                if(!chantierImporte.id) chantierImporte.id = Date.now();
-                delete chantierImporte.surLeCloud;
+                // CAS 2 : C'est une configuration de chantier globale
+                if(!donneesImportees.nom || !donneesImportees.niveaux) {
+                    alert("❌ Fichier JSON non reconnu.");
+                    return;
+                }
 
-                const indexExistant = listeTousChantiers.findIndex(c => c.nom.toLowerCase() === chantierImporte.nom.toLowerCase());
+                if(!donneesImportees.id) donneesImportees.id = Date.now();
+                delete donneesImportees.surLeCloud;
+
+                const indexExistant = listeTousChantiers.findIndex(c => c.nom.toLowerCase() === donneesImportees.nom.toLowerCase());
                 if(indexExistant !== -1) {
-                    if(confirm(`🏢 Un chantier nommé "${chantierImporte.nom}" existe déjà. Remplacer sa version ?`)) {
-                        listeTousChantiers[indexExistant] = chantierImporte;
-                    } else { return; }
+                    listeTousChantiers[indexExistant] = donneesImportees;
                 } else {
-                    listeTousChantiers.push(chantierImporte);
+                    listeTousChantiers.push(donneesImportees);
                 }
 
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 rafraichirVueAccueil();
-                alert(`📁 Le chantier "${chantierImporte.nom}" a été importé en local !`);
-                ouvrirEtChargerChantier(chantierImporte.id);
+                ouvrirEtChargerChantier(donneesImportees.id);
             } catch (err) {
-                alert("❌ Erreur de lecture du fichier.");
+                alert("❌ Erreur de décodage JSON.");
             }
         };
         reader.readAsText(file);
@@ -477,21 +518,15 @@
             const fichiers = await res.json();
             const fichiersChantiers = fichiers.filter(f => f.name.startsWith("chantier_") && f.name.endsWith(".json"));
             
-            if(fichiersChantiers.length === 0) {
-                alert("ℹ️ Aucun chantier trouvé sur le Cloud.");
-                return;
-            }
-            
             listeTousChantiers = fichiersChantiers.map(f => {
                 const nomPropre = f.name.replace("chantier_", "").replace(".json", "").replace(/_/g, " ");
-                return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub Storage", surLeCloud: true, fileName: f.name };
+                return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub", surLeCloud: true, fileName: f.name };
             });
 
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
-            await chargerCharteDepuisGitHub();
-            alert(`✅ Liste synchronisée ! ${listeTousChantiers.length} chantier(s) disponible(s).`);
-        } catch(e) { alert("Erreur d'importation."); }
+            alert(`✅ Index synchronisé (${listeTousChantiers.length} chantiers).`);
+        } catch(e) { alert("Erreur."); }
     }
 
     function rafraichirListeNiveauxTemporaire() {
@@ -545,12 +580,12 @@
 
     function rafraichirVueAccueil() {
         const container = document.getElementById('listeChantiers');
-        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif. Cliquez sur le bouton vert ou importez un fichier.</p>"; return; }
+        if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif.</p>"; return; }
         container.innerHTML = listeTousChantiers.map(c => `
             <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id || c.fileName}')">
                 <h3 style="margin:0;">🏢 ${c.nom}</h3>
                 <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
-                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Fichier sur le Cloud (cliquez pour charger)' : `📊 ${c.puces ? c.puces.length : 0} observation(s)`}</div>
+                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Config disponible sur le Cloud' : `📊 ${c.puces ? c.puces.length : 0} puce(s) active(s)`}</div>
             </div>
         `).join('');
     }
@@ -574,13 +609,10 @@
                 const idx = listeTousChantiers.findIndex(c => c.fileName == localTarget.fileName);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-            } catch(e) {
-                return alert("Impossible de télécharger le détail de ce chantier depuis GitHub.");
-            }
+            } catch(e) { return alert("Erreur Cloud."); }
         } else {
             chantierActuel = localTarget;
         }
-
         selectionnerChantierParId(chantierActuel.id);
     }
 
