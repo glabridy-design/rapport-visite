@@ -1,9 +1,9 @@
-const CACHE_NAME = 'Rapport-visite-chantier-v4'; // On change le nom pour forcer la mise à jour
+const CACHE_NAME = 'Rapport-visite-chantier-v5'; // On change le nom pour forcer la mise à jour
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './sw.js'
+  './sw.js',
   './icon.png'
 ];
 
