@@ -1,0 +1,16 @@
+{
+  "short_name": "ChantierPWA",
+  "name": "Conducteur de Chantier PWA",
+  "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1a73e8",
+  "display": "standalone",
+  "orientation": "portrait"
+}
