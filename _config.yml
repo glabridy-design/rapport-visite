@@ -1,3 +1,4 @@
 exclude:
-  - "*.json"
+  - "chantier_*.json"
   - "*.visite"
+  - "chantier_data.json"
