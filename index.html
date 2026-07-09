@@ -210,7 +210,6 @@
     </div>
 </div>
 
-<!-- PRINT TEMPLATE DYNAMIQUE DÉELLES INGÉNIERIE -->
 <div id="printTemplate">
     <div class="first-page-only" style="margin-bottom: 25px;">
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px;">
@@ -231,7 +230,6 @@
 
     <div style="margin-bottom: 25px; padding-top: 10px;">
         <h1 style="margin: 0 0 20px 0; font-size: 14pt; text-align: center; font-weight: bold; letter-spacing: 0.5px;">RAPPORT DE VISITE</h1>
-        
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px; background: #fafafa; border: 1px solid #ddd;">
             <tr>
                 <td style="width: 50%; padding: 12px; border: none; font-size: 11pt; line-height: 1.5; vertical-align: top;">
@@ -297,12 +295,9 @@
             listeTousChantiers = JSON.parse(localData);
             rafraichirVueAccueil();
         }
-
-        // CHARGEMENT EN ARRIÈRE-PLAN DE LA CHARTE GRAPHIQUE DEPUIS GITHUB
         await chargerCharteDepuisGitHub();
     });
 
-    // IMPORT ET APPLICATION DE LA CHARTE DEPUIS GITHUB
     async function chargerCharteDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -316,12 +311,9 @@
             const json = await res.json();
             const decodedData = decodeURIComponent(escape(atob(json.content)));
             const config = JSON.parse(decodedData);
-            
-            // Stocker localement pour l'usage hors-ligne ultérieur
             localStorage.setItem('charte_entreprise_pwa', decodedData);
             appliquerConfigurationCharte(config);
         } catch(e) {
-            // Secours hors-ligne s'il existe une version dans le cache
             const cacheCharte = localStorage.getItem('charte_entreprise_pwa');
             if(cacheCharte) appliquerConfigurationCharte(JSON.parse(cacheCharte));
         }
@@ -415,6 +407,7 @@
         } catch(e) { alert("Erreur réseau : " + e.message); }
     }
 
+    // FONCTION DE SCAN NETTOYÉE ET FILTRÉE POUR ÉVITER LES ERREURS ANCIENNES
     async function chargerToutDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -424,21 +417,33 @@
         const urlList = `https://api.github.com/repos/${user}/${repo}/contents/`;
         try {
             const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
-            if(!res.ok) throw new Error();
+            if(!res.ok) {
+                const errDetail = await res.json();
+                throw new Error(`Code ${res.status} : ${errDetail.message}`);
+            }
             const fichiers = await res.json();
+            
+            // On filtre strictement : seulement les fichiers individuels de la nouvelle structure
             const fichiersChantiers = fichiers.filter(f => f.name.startsWith("chantier_") && f.name.endsWith(".json"));
+            
+            if(fichiersChantiers.length === 0) {
+                alert("ℹ️ Aucun fichier de chantier de type 'chantier_[Nom].json' trouvé sur le cloud GitHub.\n\nAllez sur vos chantiers locaux et cliquez sur le bouton 'Enregistrer & Synchro Cloud' pour créer ces fichiers.");
+                return;
+            }
             
             listeTousChantiers = [];
             for(let file of fichiersChantiers) {
                 const resFile = await fetch(file.url, { headers: { "Authorization": `token ${token}` } });
-                const decodedData = decodeURIComponent(escape(atob((await resFile.json()).content)));
-                listeTousChantiers.push(JSON.parse(decodedData));
+                if(resFile.ok) {
+                    const decodedData = decodeURIComponent(escape(atob((await resFile.json()).content)));
+                    listeTousChantiers.push(JSON.parse(decodedData));
+                }
             }
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
-            await chargerCharteDepuisGitHub(); // Re-télécharger la charte également
-            alert("✅ Cloud entièrement synchronisé (chantiers et charte graphique) !");
-        } catch(e) { alert("Erreur d'importation."); }
+            await chargerCharteDepuisGitHub();
+            alert(`✅ Synchronisation cloud réussie ! ${listeTousChantiers.length} chantier(s) récupéré(s).`);
+        } catch(e) { alert("Erreur d'importation :\n" + e.message); }
     }
 
     function rafraichirListeNiveauxTemporaire() {
@@ -610,7 +615,6 @@
     }
     function fermerChantierActuel() { chantierActuel = null; changerPage('pageAccueil'); }
 
-    // EXPORT PDF REFAIT POUR L'IMPRESSION GLOBALE
     function declencherImpression() {
         if (!chantierActuel) return;
         document.querySelectorAll('#printTemplate #pdfNomChantier').forEach(el => el.innerText = chantierActuel.nom);
