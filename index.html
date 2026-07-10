@@ -87,7 +87,7 @@
 <div class="app-container">
 
     <div id="pageAccueil" class="section active">
-        <h1>Outil d'édition de rapport de visite</h1>
+        <h1>Conducteur de Chantier PWA</h1>
         
         <div class="config-box">
             <strong>🔑 Synchronisation Multi-Appareil GitHub :</strong><br>
@@ -102,7 +102,7 @@
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-success" style="flex:1; min-width:180px;" onclick="changerPage('pageCreer')">+ Créer un nouveau chantier</button>
             <button class="btn" style="flex:1; background: #5f6368; min-width:180px;" onclick="chargerIndexDepuisGitHub()">🔄 Télécharger la liste Cloud (.json)</button>
-            <button class="btn" style="flex:1; background: #0b57d0; min-width:180px;" onclick="document.getElementById('importLocalFileInput').click()">📁 Importer un fichier (.json)</button>
+            <button class="btn" style="flex:1; background: #0b57d0; min-width:180px;" onclick="document.getElementById('importLocalFileInput').click()">📁 Importer un chantier (.json)</button>
             <input type="file" id="importLocalFileInput" accept=".json" style="display:none;" onchange="importerFichierChantierLocal(event)">
         </div>
         
@@ -112,7 +112,7 @@
 
     <div id="pageCreer" class="section">
         <div class="nav-bar"><button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button></div>
-        <h2>Nouveau Chantier (Configuration Initiale)</h2>
+        <h2>Nouveau Chantier</h2>
         <form id="formChantier" onsubmit="sauvegarderChantier(event)">
             <label for="nom">Nom du chantier :</label>
             <input type="text" id="nom" required placeholder="Ex: Casino Trouville">
@@ -138,7 +138,7 @@
             </div>
             <div id="listeEntreprisesTemporaire" style="min-height:40px; border:1px solid #dadce0; padding:8px; border-radius:8px; background:#f8f9fa; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:5px;"></div>
 
-            <button type="submit" class="btn">Créer la configuration initiale</button>
+            <button type="submit" class="btn">Créer l'affaire</button>
         </form>
     </div>
 
@@ -146,9 +146,10 @@
         <div class="nav-bar">
             <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button>
             <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Synchro Config (.json)</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter Config (.json)</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#ea4335;" onclick="exporterRapportDuJourIncr()">⏏️ Exporter Rapport du Jour (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Synchro Cloud (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter Fichier (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#0b57d0;" onclick="document.getElementById('importHistoriquePucesInput').click()">📥 Injecter / Fusionner un historique (.json)</button>
+            <input type="file" id="importHistoriquePucesInput" accept=".json" style="display:none;" onchange="injecterHistoriqueRemarquesJson(event)">
         </div>
         
         <h1 id="viewNom">---</h1>
@@ -196,7 +197,7 @@
             </div>
         </div>
 
-        <h2>Observations du jour (Incrémentales)</h2>
+        <h2>Observations enregistrées</h2>
         <table class="table-remarques">
             <thead>
                 <tr><th>N°</th><th>Niveau</th><th>Photo</th><th>Entreprises &amp; Constats</th><th>Date</th></tr>
@@ -349,7 +350,7 @@
                 canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.6)); // Compression légèrement plus forte pour optimiser la mémoire
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
             };
         });
     }
@@ -362,7 +363,6 @@
         chargerCharteDepuisGitHub();
     }
 
-    // SAUVEGARDE ET SYNCHRO DE LA CONFIG INITIALE DU CHANTIER
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
         const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
@@ -379,17 +379,14 @@
         const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
         const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomFichierPropre}`;
         
-        // Configuration épurée sans le poids mort des anciens rapports pour libérer la bande passante
-        const configAExporter = { ...chantierActuel };
-        
-        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(configAExporter))));
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
 
         try {
             let sha = null;
             const resCheck = await fetch(url, { headers: { "Authorization": `token ${token}` } });
             if(resCheck.ok) { sha = (await resCheck.json()).sha; }
 
-            const bodyData = { message: `Mise à jour configuration : ${chantierActuel.nom}`, content: contentBase64 };
+            const bodyData = { message: `Mise à jour chantier : ${chantierActuel.nom}`, content: contentBase64 };
             if(sha) bodyData.sha = sha;
 
             const resPush = await fetch(url, {
@@ -397,48 +394,9 @@
                 headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
             });
-            if(resPush.ok) alert(`☁️ Configuration globale du chantier "${chantierActuel.nom}" synchronisée !`);
+            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé avec succès !`);
             else alert("Erreur de transfert Cloud.");
         } catch(e) { alert("Erreur réseau."); }
-    }
-
-    // EXPORTATION EXCLUSIVE D'UN RAPPORT DE VISITE INCRÉMENTAL DU JOUR (LIBÈRE LA MÉMOIRE)
-    function exporterRapportDuJourIncr() {
-        if(!chantierActuel || chantierActuel.puces.length === 0) {
-            return alert("Aucune puce saisie aujourd'hui pour générer un rapport.");
-        }
-        
-        const dateAujourdhui = new Date().toLocaleDateString('fr-FR').replace(/\//g, "-");
-        
-        // On isole uniquement les puces et l'état civil léger de l'affaire
-        const rapportIncr = {
-            type_fichier: "rapport_visite_incremental",
-            chantier_id: chantierActuel.id,
-            nom_chantier: chantierActuel.nom,
-            reference: chantierActuel.reference,
-            date_visite: dateAujourdhui,
-            constatations_puces: chantierActuel.puces // Uniquement les puces du jour
-        };
-
-        const stringData = JSON.stringify(rapportIncr, null, 2);
-        const blob = new Blob([stringData], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        
-        const nomFichierLocal = `rapport_${chantierActuel.nom.replace(/\s+/g, '_')}_${dateAujourdhui}.json`;
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = nomFichierLocal;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        // Optionnel : Une fois le rapport du jour exporté, on peut purger la mémoire de l'écran pour le prochain contrôle
-        if(confirm("Voulez-vous vider les puces de l'écran pour libérer la mémoire graphique de l'appareil ? (Elles sont en sécurité dans votre fichier exporté)")) {
-            chantierActuel.puces = [];
-            chargerPlanEtPucesDuNiveauActuel();
-        }
     }
 
     function exporterChantierEnFichierLocal() {
@@ -455,6 +413,46 @@
         URL.revokeObjectURL(url);
     }
 
+    // FONTIONNALITÉ CLÉ : INJECTER ET CUMULER LES ANCIENS RAPPORTS SANS LES ÉCRASER
+    function injecterHistoriqueRemarquesJson(event) {
+        const file = event.target.files[0];
+        if (!file || !chantierActuel) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const historiqueImporte = JSON.parse(e.target.result);
+                
+                // On vérifie si le fichier contient des puces valides à importer
+                const pucesAInjecter = historiqueImporte.puces || historiqueImporte.constatations_puces || [];
+                
+                if(pucesAInjecter.length === 0) {
+                    alert("⚠️ Aucun point ou aucune puce n'a été trouvé dans ce fichier historique.");
+                    return;
+                }
+
+                // Fusion sécurisée : On empile les nouvelles puces à la suite des puces existantes
+                chantierActuel.puces = [...chantierActuel.puces, ...pucesAInjecter];
+
+                // On remet de l'ordre proprement dans la numérotation globale pour éviter les doublons de numéros
+                chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
+
+                // Sauvegarde automatique dans la mémoire interne du navigateur
+                const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+                if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+                localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
+
+                // Rechargement immédiat de l'interface graphique
+                chargerPlanEtPucesDuNiveauActuel();
+                alert(`🎯 Succès ! ${pucesAInjecter.length} observations historiques ont été fusionnées et réimplantées sur vos plans.`);
+            } catch (err) {
+                alert("❌ Impossible de lire ce fichier historique. Vérifiez qu'il s'agit d'un fichier .json valide.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ""; // Réinitialise l'input
+    }
+
     function importerFichierChantierLocal(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -464,23 +462,8 @@
             try {
                 const donneesImportees = JSON.parse(e.target.result);
                 
-                // CAS 1 : C'est un rapport incrémental du jour qu'on vient fusionner / ajouter
-                if(donneesImportees.type_fichier === "rapport_visite_incremental") {
-                    if(!chantierActuel || chantierActuel.id != donneesImportees.chantier_id) {
-                        return alert("❌ Impossible d'importer ce rapport : Ouvrez d'abord la configuration de chantier correspondante.");
-                    }
-                    // On incrémente les puces importées dans le chantier ouvert
-                    chantierActuel.puces = [...chantierActuel.puces, ...donneesImportees.constatations_puces];
-                    // Recalculer les numéros de puces pour éviter les doublons
-                    chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
-                    chargerPlanEtPucesDuNiveauActuel();
-                    alert(`✅ ${donneesImportees.constatations_puces.length} puces incrémentées avec succès sur vos plans !`);
-                    return;
-                }
-
-                // CAS 2 : C'est une configuration de chantier globale
                 if(!donneesImportees.nom || !donneesImportees.niveaux) {
-                    alert("❌ Fichier JSON non reconnu.");
+                    alert("❌ Fichier JSON non reconnu comme un chantier valide.");
                     return;
                 }
 
@@ -497,6 +480,7 @@
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 rafraichirVueAccueil();
                 ouvrirEtChargerChantier(donneesImportees.id);
+                alert(`📁 Chantier "${donneesImportees.nom}" importé avec succès !`);
             } catch (err) {
                 alert("❌ Erreur de décodage JSON.");
             }
@@ -590,6 +574,10 @@
         `).join('');
     }
 
+    async function abrirEtChargerChantier(id) {
+        selectionnerChantierParId(id);
+    }
+
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
@@ -647,7 +635,7 @@
             if(p) { p.x = x; p.y = y; rafraichirPucesGraphiques(); puceSelectionneeId = null; return; }
         }
         const num = chantierActuel.puces.length + 1;
-        const nPuce = { id: Date.now(), numero: num, niveauNom: chantierActuel.niveaux[indexNiveauActuel].nom, x, y, commentaire: "", photo: "", entreprises: [], dateCreation: new Date().toLocaleDateString() };
+        const nPuce = { id: Date.now(), numero: num, niveauNom: chantierActuel.niveaux[indexNiveauActuel].nom, x, y, commentary: "", photo: "", entreprises: [], dateCreation: new Date().toLocaleDateString() };
         chantierActuel.puces.push(nPuce);
         rafraichirPucesGraphiques(); selectionnerPuce(nPuce.id);
     }
@@ -668,7 +656,7 @@
         puceSelectionneeId = id; const p = chantierActuel.puces.find(p => p.id === id); if(!p) return;
         document.getElementById('zoneSaisiePuce').style.display = 'block';
         document.getElementById('labelNumeroPuce').innerText = p.numero;
-        document.getElementById('commentairePuce').value = p.commentaire;
+        document.getElementById('commentairePuce').value = p.commentaire || "";
         document.getElementById('zoneEntreprisesPuceCheckboxes').innerHTML = chantierActuel.entreprises.map(e => `<label class="entreprise-checkbox-item"><input type="checkbox" value="${e}" ${(p.entreprises || []).includes(e)?'checked':''}> ${e}</label>`).join('');
         document.getElementById('photoPreview').style.backgroundImage = p.photo ? `url(${p.photo})` : 'none';
         photoTemporaireBase64 = p.photo || "";
@@ -701,11 +689,14 @@
         chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
         document.getElementById('zoneSaisiePuce').style.display = 'none'; puceSelectionneeId = null;
         rafraichirPucesGraphiques(); rafraichirTableauRemarques();
+        const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+        localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
     }
     function rafraichirTableauRemarques() {
         const tbody = document.getElementById('corpsTableauRemarques');
-        if(!chantierActuel || chantierActuel.puces.length === 0) { tbody.innerHTML = "<tr><td colspan='5'>Aucune remarque</td></tr>"; return; }
-        tbody.innerHTML = chantierActuel.puces.map(p => `<tr><td><b>${p.numero}</b></td><td>${p.niveauNom}</td><td>${p.photo?'📷':'Non'}</td><td>${p.commentaire}</td><td>${p.dateCreation}</td></tr>`).join('');
+        if(!chantierActuel || !chantierActuel.puces || chantierActuel.puces.length === 0) { tbody.innerHTML = "<tr><td colspan='5'>Aucune remarque</td></tr>"; return; }
+        tbody.innerHTML = chantierActuel.puces.map(p => `<tr><td><b>${p.numero}</b></td><td>${p.niveauNom}</td><td>${p.photo?'📷':'Non'}</td><td>${p.commentaire || ''}</td><td>${p.dateCreation}</td></tr>`).join('');
     }
     function ajouterEntrepriseDirectTerrain() {
         const input = document.getElementById('nomEntrepriseTerrainInput');
@@ -715,6 +706,9 @@
                 chantierActuel.entreprises.push(nom);
                 document.getElementById('viewEntreprises').innerHTML = chantierActuel.entreprises.map(e => `<span class="enterprise-badge">${e}</span>`).join('');
                 input.value = "";
+                const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+                if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+                localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             }
         }
     }
