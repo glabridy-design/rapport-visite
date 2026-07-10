@@ -413,7 +413,6 @@
         URL.revokeObjectURL(url);
     }
 
-    // FONTIONNALITÉ CLÉ : INJECTER ET CUMULER LES ANCIENS RAPPORTS SANS LES ÉCRASER
     function injecterHistoriqueRemarquesJson(event) {
         const file = event.target.files[0];
         if (!file || !chantierActuel) return;
@@ -423,7 +422,7 @@
             try {
                 const historiqueImporte = JSON.parse(e.target.result);
                 
-                // On vérifie si le fichier contient des puces valides à importer
+                // Tolérance de structure : accepte l'ancien format "constatations_puces" ou le format standard "puces"
                 const pucesAInjecter = historiqueImporte.puces || historiqueImporte.constatations_puces || [];
                 
                 if(pucesAInjecter.length === 0) {
@@ -431,26 +430,26 @@
                     return;
                 }
 
-                // Fusion sécurisée : On empile les nouvelles puces à la suite des puces existantes
+                // Fusion sécurisée : on ajoute les puces à la suite des existantes
                 chantierActuel.puces = [...chantierActuel.puces, ...pucesAInjecter];
 
-                // On remet de l'ordre proprement dans la numérotation globale pour éviter les doublons de numéros
+                // Uniformisation complète de la numérotation
                 chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
 
-                // Sauvegarde automatique dans la mémoire interne du navigateur
+                // Sauvegarde automatique en mémoire locale
                 const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
 
-                // Rechargement immédiat de l'interface graphique
+                // Rechargement visuel instantané
                 chargerPlanEtPucesDuNiveauActuel();
-                alert(`🎯 Succès ! ${pucesAInjecter.length} observations historiques ont été fusionnées et réimplantées sur vos plans.`);
+                alert(`🎯 Succès ! ${pucesAInjecter.length} puces historiques ont été fusionnées sur vos plans.`);
             } catch (err) {
                 alert("❌ Impossible de lire ce fichier historique. Vérifiez qu'il s'agit d'un fichier .json valide.");
             }
         };
         reader.readAsText(file);
-        event.target.value = ""; // Réinitialise l'input
+        event.target.value = ""; 
     }
 
     function importerFichierChantierLocal(event) {
@@ -635,7 +634,7 @@
             if(p) { p.x = x; p.y = y; rafraichirPucesGraphiques(); puceSelectionneeId = null; return; }
         }
         const num = chantierActuel.puces.length + 1;
-        const nPuce = { id: Date.now(), numero: num, niveauNom: chantierActuel.niveaux[indexNiveauActuel].nom, x, y, commentary: "", photo: "", entreprises: [], dateCreation: new Date().toLocaleDateString() };
+        const nPuce = { id: Date.now(), numero: num, niveauNom: chantierActuel.niveaux[indexNiveauActuel].nom, x, y, commentaire: "", photo: "", entreprises: [], dateCreation: new Date().toLocaleDateString() };
         chantierActuel.puces.push(nPuce);
         rafraichirPucesGraphiques(); selectionnerPuce(nPuce.id);
     }
