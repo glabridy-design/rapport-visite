@@ -148,6 +148,7 @@
             <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
             <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Synchro Cloud (.json)</button>
             <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter Fichier (.json)</button>
+            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#ea4335;" onclick="exporterRapportDuJourIncr()">⏏️ Exporter Rapport du Jour (.json)</button>
             <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#0b57d0;" onclick="document.getElementById('importHistoriquePucesInput').click()">📥 Injecter / Fusionner un historique (.json)</button>
             <input type="file" id="importHistoriquePucesInput" accept=".json" style="display:none;" onchange="injecterHistoriqueRemarquesJson(event)">
         </div>
@@ -158,12 +159,23 @@
             <span><strong>📍 Lieu :</strong> <span id="viewLoc">---</span></span>
         </div>
 
+        <!-- MODIFICATION DU FICHIER SOURCE DES ENTREPRISES -->
         <label>Entreprises associées :</label>
-        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:10px; border-radius:8px; margin-bottom:20px;">
+        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:10px; border-radius:8px; margin-bottom:15px;">
             <div id="viewEntreprises" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
             <div class="flex-row" style="margin-bottom:0;">
-                <input type="text" id="nomEntrepriseTerrainInput" placeholder="Ajouter une entreprise..." style="padding:8px; font-size:14px;">
+                <input type="text" id="nomEntrepriseTerrainInput" placeholder="Ajouter une entreprise au fichier source..." style="padding:8px; font-size:14px;">
                 <button type="button" class="btn btn-small btn-success" onclick="ajouterEntrepriseDirectTerrain()">+ Inclure</button>
+            </div>
+        </div>
+
+        <!-- MODIFICATION DU FICHIER SOURCE DES NIVEAUX / PLANS -->
+        <label>Ajouter un niveau / plan à cette affaire :</label>
+        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:12px; border-radius:8px; margin-bottom:20px;">
+            <div class="flex-row" style="margin-bottom:0;">
+                <input type="text" id="nomNiveauDirectInput" placeholder="Nom (Ex: R+2, Parking...)" style="padding:8px; font-size:14px;">
+                <input type="file" id="planDirectInput" accept="image/*" onchange="chargerImagePlanNiveauDirectTerrain(event)" style="font-size:13px;">
+                <button type="button" class="btn btn-small" style="background:#5f6368;" onclick="injecterNiveauDirectDansFichierSource()">+ Injecter Niveau</button>
             </div>
         </div>
 
@@ -273,6 +285,7 @@
     let entreprisesTemporaires = [];
     let niveauxTemporaires = []; 
     let planEnCoursDeChargementBase64 = ""; 
+    let planDirectTerrainBase64 = ""; // Variable pour l'ajout direct
     let photoTemporaireBase64 = "";
     let chantierActuel = null; 
     let indexNiveauActuel = 0; 
@@ -365,7 +378,7 @@
 
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
-        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        const index = listTousChantiers.findIndex(c => c.id == chantierActuel.id);
         if(index !== -1) listeTousChantiers[index] = chantierActuel;
 
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
@@ -413,6 +426,39 @@
         URL.revokeObjectURL(url);
     }
 
+    function exporterRapportDuJourIncr() {
+        if(!chantierActuel || !chantierActuel.puces || chantierActuel.puces.length === 0) {
+            return alert("Aucune puce active pour générer le rapport.");
+        }
+        
+        const dateAujourdhui = new Date().toLocaleDateString('fr-FR').replace(/\//g, "-");
+        
+        const rapportIncr = {
+            type_fichier: "rapport_visite_incremental",
+            chantier_id: chantierActuel.id,
+            nom_chantier: chantierActuel.nom,
+            reference: chantierActuel.reference,
+            date_visite: dateAujourdhui,
+            constatations_puces: chantierActuel.puces 
+        };
+
+        const stringData = JSON.stringify(rapportIncr, null, 2);
+        const blob = new Blob([stringData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const nomFichierLocal = `rapport_${chantierActuel.nom.replace(/\s+/g, '_')}_${dateAujourdhui}.json`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nomFichierLocal;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert("⏏️ Votre rapport de visite isolé du jour a été téléchargé avec succès ! (Rien n'a été effacé de l'écran)");
+    }
+
     function injecterHistoriqueRemarquesJson(event) {
         const file = event.target.files[0];
         if (!file || !chantierActuel) return;
@@ -421,8 +467,6 @@
         reader.onload = function(e) {
             try {
                 const historiqueImporte = JSON.parse(e.target.result);
-                
-                // Tolérance de structure : accepte l'ancien format "constatations_puces" ou le format standard "puces"
                 const pucesAInjecter = historiqueImporte.puces || historiqueImporte.constatations_puces || [];
                 
                 if(pucesAInjecter.length === 0) {
@@ -430,18 +474,13 @@
                     return;
                 }
 
-                // Fusion sécurisée : on ajoute les puces à la suite des existantes
                 chantierActuel.puces = [...chantierActuel.puces, ...pucesAInjecter];
-
-                // Uniformisation complète de la numérotation
                 chantierActuel.puces.forEach((p, i) => p.numero = i + 1);
 
-                // Sauvegarde automatique en mémoire locale
                 const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
 
-                // Rechargement visuel instantané
                 chargerPlanEtPucesDuNiveauActuel();
                 alert(`🎯 Succès ! ${pucesAInjecter.length} puces historiques ont été fusionnées sur vos plans.`);
             } catch (err) {
@@ -450,6 +489,51 @@
         };
         reader.readAsText(file);
         event.target.value = ""; 
+    }
+
+    // AJOUT DIRECT D'UN PLAN DEPUIS LE TERRAIN
+    function chargerImagePlanNiveauDirectTerrain(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) { 
+                compresserImage(e.target.result).then(c => planDirectTerrainBase64 = c); 
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function injecterNiveauDirectDansFichierSource() {
+        const inputNom = document.getElementById('nomNiveauDirectInput');
+        const nomNiv = inputNom.value.trim();
+
+        if(!chantierActuel) return;
+        if(!nomNiv || !planDirectTerrainBase64) {
+            return alert("⚠️ Spécifiez un nom de niveau et sélectionnez une image de plan.");
+        }
+
+        // On injecte directement dans le tableau des niveaux de l'affaire ouverte
+        chantierActuel.niveaux.push({ nom: nomNiv, plan: planDirectTerrainBase64 });
+
+        // Sauvegarde immédiate
+        const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+        localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
+
+        // Met à jour le menu déroulant à l'écran
+        document.getElementById('selectNiveauVisite').innerHTML = chantierActuel.niveaux.map((n, i) => `<option value="${i}">${n.nom}</option>`).join('');
+        
+        // Se positionne sur le nouveau plan
+        indexNiveauActuel = chantierActuel.niveaux.length - 1;
+        document.getElementById('selectNiveauVisite').value = indexNiveauActuel;
+        
+        // Nettoyage des champs de saisie
+        inputNom.value = "";
+        document.getElementById('planDirectInput').value = "";
+        planDirectTerrainBase64 = "";
+
+        chargerPlanEtPucesDuNiveauActuel();
+        alert(`✅ Nouveau niveau "${nomNiv}" injecté avec succès dans le fichier source de ce chantier !`);
     }
 
     function importerFichierChantierLocal(event) {
