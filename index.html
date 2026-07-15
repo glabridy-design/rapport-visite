@@ -14,11 +14,29 @@
         .section { display: none; }
         .section.active { display: block; }
         
-        /* Navigation */
+        /* Navigation principale */
         .nav-bar { display: block; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; }
         .nav-bar::after { content: ""; display: table; clear: both; }
         .btn-back { float: left; background: #5f6368; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         
+        /* MENU DÉROULANT DES ACTIONS */
+        .dropdown-container { float: right; position: relative; display: inline-block; }
+        .btn-dropdown { background: #1a73e8; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
+        .btn-dropdown:hover { background: #1557b0; }
+        .dropdown-menu { display: none; position: absolute; right: 0; top: 100%; background-color: white; min-width: 240px; box-shadow: 0px 8px 16px rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid #dadce0; z-index: 100; margin-top: 5px; overflow: hidden; }
+        .dropdown-menu button { color: #333; padding: 12px 16px; text-decoration: none; display: block; width: 100%; border: none; background: none; text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #f1f3f4; }
+        .dropdown-menu button:last-child { border-bottom: none; }
+        .dropdown-menu button:hover { background-color: #f8f9fa; color: #1a73e8; }
+        .dropdown-container:hover .dropdown-menu { display: block; }
+
+        /* Onglets internes */
+        .tabs-container { display: flex; border-bottom: 2px solid #dadce0; margin-bottom: 20px; gap: 5px; clear: both; padding-top: 15px; }
+        .tab-button { flex: 1; padding: 12px; background: #f1f3f4; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: bold; font-size: 15px; color: #5f6368; transition: all 0.2s; }
+        .tab-button:hover { background: #e8eaed; color: #1a73e8; }
+        .tab-button.active { background: #1a73e8; color: white; border-bottom: 2px solid #1a73e8; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         /* Formulaires */
         label { display: block; margin: 14px 0 6px; font-weight: 600; font-size: 14px; color: #4a4a4a; }
         input[type="text"], select, textarea { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 16px; background: #f8f9fa; transition: border 0.2s; }
@@ -53,10 +71,21 @@
         .pin { position: absolute; width: 18px; height: 18px; background: #d93025; color: white; border-radius: 50%; text-align: center; font-size: 10px; font-weight: bold; line-height: 14px; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer; }
         .pin.selected { background: #1a73e8; z-index: 10; transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 3px rgba(26,115,232,0.4); }
         
-        /* Tableaux */
+        /* Tableaux et Gantt */
         .table-remarques { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .table-remarques th, .table-remarques td { border: 1px solid #dadce0; padding: 10px; text-align: left; font-size: 14px; }
         .table-remarques th { background: #f1f3f4; }
+        
+        .gantt-chart-container { background: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 15px; margin-top: 15px; overflow-x: auto; }
+        .gantt-row { display: flex; align-items: center; border-bottom: 1px solid #f1f3f4; padding: 8px 0; font-size: 14px; }
+        .gantt-row:last-child { border-bottom: none; }
+        .gantt-col-name { width: 40%; padding-right: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .gantt-col-bar-container { width: 60%; display: flex; align-items: center; gap: 10px; }
+        .gantt-progress-track { flex: 1; height: 16px; background: #e8eaed; border-radius: 8px; overflow: hidden; position: relative; }
+        .gantt-progress-bar { height: 100%; background: #1a73e8; border-radius: 8px 0 0 8px; transition: width 0.3s; }
+        .gantt-progress-bar.summary { background: #24292e; }
+        .gantt-dates { font-size: 11px; color: #5f6368; white-space: nowrap; }
+
         .photo-preview-box { width: 100%; height: 180px; border: 2px dashed #ccc; border-radius: 8px; margin-top: 8px; display: block; background: #f8f9fa; text-align: center; line-height: 180px; color: #666; font-size: 14px; background-size: cover; background-position: center; }
         .entreprises-selection-list { max-height: 120px; overflow-y: auto; background: white; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; margin-top: 5px; }
         .entreprise-checkbox-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer; }
@@ -65,13 +94,20 @@
             @page { size: auto; margin: 0mm; }
             body { background: white; color: black; font-size: 11pt; padding: 15mm; }
             .app-container { max-width: 100%; margin: 0; padding: 0; box-shadow: none; border: none; }
-            .section, .nav-bar, .no-print, form, button, input, textarea, select, .config-box { display: none !important; }
+            .section, .nav-bar, .no-print, form, button, input, textarea, select, .config-box, .tabs-container { display: none !important; }
             #printTemplate { display: block !important; }
             .page-break { page-break-before: always; }
             h1, h2, h3 { color: #000; border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 20px; }
             .pdf-table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: avoid; }
             .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 8px; font-size: 10pt; text-align: left; }
             .pdf-table th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            
+            .gantt-print-row { border-bottom: 1px solid #000; padding: 6px 0; display: flex; align-items: center; page-break-inside: avoid; }
+            .gantt-print-text { width: 45%; font-size: 10pt; }
+            .gantt-print-bar-box { width: 55%; display: flex; align-items: center; gap: 8px; }
+            .gantt-print-track { flex: 1; height: 12px; background: #eee; border: 1px solid #ccc; }
+            .gantt-print-bar { height: 100%; background: #555; }
+            
             .photo-grid-table { width: 100%; border-collapse: separate; border-spacing: 15px; page-break-inside: avoid; }
             .photo-grid-table td { width: 50%; vertical-align: top; border: 1px solid #ddd; padding: 10px; text-align: center; background: #fff; page-break-inside: avoid; }
             .photo-grid-img { width: 100%; height: 240px; object-fit: contain; background: #fafafa; display: block; margin-bottom: 8px; border: 1px solid #eee; }
@@ -145,11 +181,17 @@
     <div id="pageChantierDetails" class="section">
         <div class="nav-bar">
             <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button>
-            <button class="btn btn-success btn-small no-print" style="float:right; margin:0;" onclick="declencherImpression()">Exporter PDF</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#24292e;" onclick="sauvegarderEtSynchroniser()">☁️ Synchro Cloud (.json)</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#00875a;" onclick="exporterChantierEnFichierLocal()">💾 Exporter Fichier (.json)</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#ea4335;" onclick="exporterRapportDuJourIncr()">⏏️ Exporter Rapport du Jour (.json)</button>
-            <button class="btn btn-small no-print" style="float:right; margin:0 10px 0 0; background:#0b57d0;" onclick="document.getElementById('importHistoriquePucesInput').click()">📥 Injecter / Fusionner un historique (.json)</button>
+            
+            <div class="dropdown-container no-print">
+                <button class="btn-dropdown">⚙️ Actions &amp; Exports ▾</button>
+                <div class="dropdown-menu">
+                    <button onclick="declencherImpression()">🖨️ Exporter en PDF</button>
+                    <button onclick="sauvegarderEtSynchroniser()">☁️ Synchro Cloud (.json)</button>
+                    <button onclick="exporterChantierEnFichierLocal()">💾 Exporter l'Affaire (.json)</button>
+                    <button onclick="exporterRapportDuJourIncr()">⏏️ Exporter Visite du Jour (.json)</button>
+                    <button onclick="document.getElementById('importHistoriquePucesInput').click()">📥 Fusionner un Historique (.json)</button>
+                </div>
+            </div>
             <input type="file" id="importHistoriquePucesInput" accept=".json" style="display:none;" onchange="injecterHistoriqueRemarquesJson(event)">
         </div>
         
@@ -159,63 +201,84 @@
             <span><strong>📍 Lieu :</strong> <span id="viewLoc">---</span></span>
         </div>
 
-        <!-- MODIFICATION DU FICHIER SOURCE DES ENTREPRISES -->
-        <label>Entreprises associées :</label>
-        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:10px; border-radius:8px; margin-bottom:15px;">
-            <div id="viewEntreprises" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-            <div class="flex-row" style="margin-bottom:0;">
-                <input type="text" id="nomEntrepriseTerrainInput" placeholder="Ajouter une entreprise au fichier source..." style="padding:8px; font-size:14px;">
-                <button type="button" class="btn btn-small btn-success" onclick="ajouterEntrepriseDirectTerrain()">+ Inclure</button>
+        <div class="tabs-container no-print">
+            <button class="tab-button active" onclick="switchTab('tabTerrain')">🏗️ Saisie Terrain</button>
+            <button class="tab-button" onclick="switchTab('tabGantt')">📅 Planning &amp; Gantt</button>
+        </div>
+
+        <div id="tabTerrain" class="tab-content active">
+            <label>Entreprises associées :</label>
+            <div style="background:#f8f9fa; border:1px solid #dadce0; padding:10px; border-radius:8px; margin-bottom:15px;">
+                <div id="viewEntreprises" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
+                <div class="flex-row" style="margin-bottom:0;">
+                    <input type="text" id="nomEntrepriseTerrainInput" placeholder="Ajouter une entreprise au fichier source..." style="padding:8px; font-size:14px;">
+                    <button type="button" class="btn btn-small btn-success" onclick="ajouterEntrepriseDirectTerrain()">+ Inclure</button>
+                </div>
+            </div>
+
+            <label>Ajouter un niveau / plan à cette affaire :</label>
+            <div style="background:#f8f9fa; border:1px solid #dadce0; padding:12px; border-radius:8px; margin-bottom:20px;">
+                <div class="flex-row" style="margin-bottom:0;">
+                    <input type="text" id="nomNiveauDirectInput" placeholder="Nom (Ex: R+2, Parking...)" style="padding:8px; font-size:14px;">
+                    <input type="file" id="planDirectInput" accept="image/*" onchange="chargerImagePlanNiveauDirectTerrain(event)" style="font-size:13px;">
+                    <button type="button" class="btn btn-small" style="background:#5f6368;" onclick="injecterNiveauDirectDansFichierSource()">+ Injecter Niveau</button>
+                </div>
+            </div>
+
+            <div style="background:#edf2fa; border:1px solid #b4cff7; padding:12px; border-radius:8px; margin-bottom:15px;">
+                <label for="selectNiveauVisite" style="margin-top:0; color:#1a73e8;">Niveau actif :</label>
+                <select id="selectNiveauVisite" onchange="changerDeNiveauSurTerrain()"></select>
+            </div>
+
+            <h2>Plan interactif</h2>
+            <div class="plan-wrapper">
+                <div id="planContainer" class="plan-container">
+                    <img id="viewPlanImg" class="plan-img" alt="Plan" onclick="placerPuce(event)">
+                </div>
+            </div>
+
+            <div id="zoneSaisiePuce" style="display:none; background:#edf2fa; border:1px solid #b4cff7; padding:15px; border-radius:8px; margin-top:20px;">
+                <h3>Saisie Puce N° <span id="labelNumeroPuce">X</span></h3>
+                <label>Photo constatation :</label>
+                <input type="file" id="photoPuce" accept="image/*" onchange="chargerPhotoPuce(event)">
+                <div id="photoPreview" class="photo-preview-box">Aucune photo</div>
+
+                <label>Entreprises concernées :</label>
+                <div id="zoneEntreprisesPuceCheckboxes" class="entreprises-selection-list"></div>
+
+                <label>Observations :</label>
+                <textarea id="commentairePuce" rows="3"></textarea>
+
+                <div style="margin-top:15px; text-align:right;">
+                    <button type="button" class="btn btn-danger btn-small" onclick="supprimerPuceActuelle()">Supprimer</button>
+                    <button type="button" class="btn btn-success btn-small" onclick="sauvegarderDonniesPuce()">Valider ce point</button>
+                </div>
+            </div>
+
+            <h2>Observations enregistrées</h2>
+            <table class="table-remarques">
+                <thead>
+                    <tr><th>N°</th><th>Niveau</th><th>Photo</th><th>Entreprises &amp; Constats</th><th>Date</th></tr>
+                </thead>
+                <tbody id="corpsTableauRemarques"></tbody>
+            </table>
+        </div>
+
+        <div id="tabGantt" class="tab-content">
+            <h2>📅 Planning prévisionnel Gantt (MS Project)</h2>
+            <p style="font-size: 14px; color:#5f6368;">Importez le fichier de planification `.xml` généré depuis MS Project pour afficher et mettre à jour l'avancement chronologique.</p>
+            
+            <div style="background:#f8f9fa; border:1px solid #dadce0; padding:15px; border-radius:8px; margin-bottom:20px; display:flex; gap:10px; align-items:center;">
+                <button type="button" class="btn btn-small" style="background:#24292e; margin:0;" onclick="document.getElementById('importGanttXmlInput').click()">📥 Importer XML MS Project</button>
+                <input type="file" id="importGanttXmlInput" accept=".xml" style="display:none;" onchange="importerFichierGanttXml(event)">
+                <span id="ganttStatusLabel" style="font-size:13px; color:#666; font-style:italic;">Aucun planning chargé.</span>
+            </div>
+
+            <div id="ganttChartArea" style="display:none;">
+                <h3 style="margin-bottom:5px;">Frise Chronologique des Tâches</h3>
+                <div id="ganttVisualContainer" class="gantt-chart-container"></div>
             </div>
         </div>
-
-        <!-- MODIFICATION DU FICHIER SOURCE DES NIVEAUX / PLANS -->
-        <label>Ajouter un niveau / plan à cette affaire :</label>
-        <div style="background:#f8f9fa; border:1px solid #dadce0; padding:12px; border-radius:8px; margin-bottom:20px;">
-            <div class="flex-row" style="margin-bottom:0;">
-                <input type="text" id="nomNiveauDirectInput" placeholder="Nom (Ex: R+2, Parking...)" style="padding:8px; font-size:14px;">
-                <input type="file" id="planDirectInput" accept="image/*" onchange="chargerImagePlanNiveauDirectTerrain(event)" style="font-size:13px;">
-                <button type="button" class="btn btn-small" style="background:#5f6368;" onclick="injecterNiveauDirectDansFichierSource()">+ Injecter Niveau</button>
-            </div>
-        </div>
-
-        <div style="background:#edf2fa; border:1px solid #b4cff7; padding:12px; border-radius:8px; margin-bottom:15px;">
-            <label for="selectNiveauVisite" style="margin-top:0; color:#1a73e8;">Niveau actif :</label>
-            <select id="selectNiveauVisite" onchange="changerDeNiveauSurTerrain()"></select>
-        </div>
-
-        <h2>Plan interactif</h2>
-        <div class="plan-wrapper">
-            <div id="planContainer" class="plan-container">
-                <img id="viewPlanImg" class="plan-img" alt="Plan" onclick="placerPuce(event)">
-            </div>
-        </div>
-
-        <div id="zoneSaisiePuce" style="display:none; background:#edf2fa; border:1px solid #b4cff7; padding:15px; border-radius:8px; margin-top:20px;">
-            <h3>Saisie Puce N° <span id="labelNumeroPuce">X</span></h3>
-            <label>Photo constatation :</label>
-            <input type="file" id="photoPuce" accept="image/*" onchange="chargerPhotoPuce(event)">
-            <div id="photoPreview" class="photo-preview-box">Aucune photo</div>
-
-            <label>Entreprises concernées :</label>
-            <div id="zoneEntreprisesPuceCheckboxes" class="entreprises-selection-list"></div>
-
-            <label>Observations :</label>
-            <textarea id="commentairePuce" rows="3"></textarea>
-
-            <div style="margin-top:15px; text-align:right;">
-                <button type="button" class="btn btn-danger btn-small" onclick="supprimerPuceActuelle()">Supprimer</button>
-                <button type="button" class="btn btn-success btn-small" onclick="sauvegarderDonniesPuce()">Valider ce point</button>
-            </div>
-        </div>
-
-        <h2>Observations enregistrées</h2>
-        <table class="table-remarques">
-            <thead>
-                <tr><th>N°</th><th>Niveau</th><th>Photo</th><th>Entreprises &amp; Constats</th><th>Date</th></tr>
-            </thead>
-            <tbody id="corpsTableauRemarques"></tbody>
-        </table>
     </div>
 </div>
 
@@ -262,8 +325,13 @@
     <h2>1. Plans de situation &amp; Implantation des puces</h2>
     <div id="pdfPlansMultiples"></div>
 
+    <div id="pdfGanttSection" class="page-break" style="display:none;">
+        <h2>2. Planning de réalisation (MS Project)</h2>
+        <div id="pdfGanttContainer" style="margin-top:15px; border-top:1px solid #000;"></div>
+    </div>
+
     <div class="page-break"></div>
-    <h2>2. Tableau des constatations et remarques</h2>
+    <h2 id="pdfTitreRemarques">3. Tableau des constatations et remarques</h2>
     <table class="pdf-table">
         <thead>
             <tr>
@@ -276,7 +344,7 @@
     </table>
 
     <div class="page-break"></div>
-    <h2>3. Reportage photographique</h2>
+    <h2 id="pdfTitrePhotos">4. Reportage photographique</h2>
     <div id="pdfPhotoPagesContainer"></div>
 </div>
 
@@ -285,7 +353,7 @@
     let entreprisesTemporaires = [];
     let niveauxTemporaires = []; 
     let planEnCoursDeChargementBase64 = ""; 
-    let planDirectTerrainBase64 = ""; // Variable pour l'ajout direct
+    let planDirectTerrainBase64 = "";
     let photoTemporaireBase64 = "";
     let chantierActuel = null; 
     let indexNiveauActuel = 0; 
@@ -303,6 +371,15 @@
         }
         await chargerCharteDepuisGitHub();
     });
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        const clickedBtn = Array.from(document.querySelectorAll('.tab-button')).find(b => b.getAttribute('onclick').includes(tabId));
+        if(clickedBtn) clickedBtn.classList.add('active');
+    }
 
     async function chargerCharteDepuisGitHub() {
         const user = localStorage.getItem('git_user');
@@ -378,7 +455,7 @@
 
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
-        const index = listTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
         if(index !== -1) listeTousChantiers[index] = chantierActuel;
 
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
@@ -491,7 +568,101 @@
         event.target.value = ""; 
     }
 
-    // AJOUT DIRECT D'UN PLAN DEPUIS LE TERRAIN
+    function importerFichierGanttXml(event) {
+        const file = event.target.files[0];
+        if(!file || !chantierActuel) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
+                const tasksNodes = xmlDoc.getElementsByTagName("Task");
+                
+                let listeTachesParsees = [];
+                
+                for(let i = 0; i < tasksNodes.length; i++) {
+                    const task = tasksNodes[i];
+                    const nameNode = task.getElementsByTagName("Name")[0];
+                    if(!nameNode) continue;
+                    
+                    const name = nameNode.textContent;
+                    const uid = task.getElementsByTagName("UID")[0]?.textContent || i;
+                    const start = task.getElementsByTagName("Start")[0]?.textContent || "";
+                    const finish = task.getElementsByTagName("Finish")[0]?.textContent || "";
+                    const percent = task.getElementsByTagName("PercentComplete")[0]?.textContent || "0";
+                    const isSummary = task.getElementsByTagName("Summary")[0]?.textContent === "1" || task.getElementsByTagName("Summary")[0]?.textContent === "true";
+                    const outlineLevel = parseInt(task.getElementsByTagName("OutlineLevel")[0]?.textContent || "1");
+
+                    const cleanStart = start.split("T")[0];
+                    const cleanFinish = finish.split("T")[0];
+
+                    listeTachesParsees.push({
+                        uid, name, start: cleanStart, finish: cleanFinish, percent: parseInt(percent), isSummary, outlineLevel
+                    });
+                }
+
+                if(listeTachesParsees.length === 0) {
+                    return alert("⚠️ Aucune tâche valide trouvée dans ce fichier XML MS Project.");
+                }
+
+                chantierActuel.planning = listeTachesParsees;
+                const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+                if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+                localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
+
+                dessinerPlanningGantt();
+                alert(`📅 Succès ! Planning importé : ${listeTachesParsees.length} tâches chargées.`);
+            } catch(err) {
+                alert("❌ Erreur de lecture du fichier XML. Assurez-vous d'avoir enregistré sous le format 'XML Microsoft Project' (.xml).");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+    }
+
+    function dessinerPlanningGantt() {
+        const visualCtn = document.getElementById('ganttVisualContainer');
+        const statusLabel = document.getElementById('ganttStatusLabel');
+        const ganttArea = document.getElementById('ganttChartArea');
+
+        if(!chantierActuel || !chantierActuel.planning || chantierActuel.planning.length === 0) {
+            visualCtn.innerHTML = "";
+            statusLabel.innerText = "Aucun planning chargé.";
+            ganttArea.style.display = "none";
+            return;
+        }
+
+        statusLabel.innerText = `Planning opérationnel (${chantierActuel.planning.length} tâches)`;
+        ganttArea.style.display = "block";
+
+        let html = "";
+        chantierActuel.planning.forEach(t => {
+            const indent = (t.outlineLevel - 1) * 20;
+            const textStyle = t.isSummary ? "font-weight: bold; color: #1a73e8;" : "font-weight: normal;";
+            const formatStart = t.start ? t.start.split("-").reverse().join("/") : "N/A";
+            const formatFinish = t.finish ? t.finish.split("-").reverse().join("/") : "N/A";
+            const barClass = t.isSummary ? "gantt-progress-bar summary" : "gantt-progress-bar";
+
+            html += `
+                <div class="gantt-row">
+                    <div class="gantt-col-name" style="padding-left: ${indent}px; ${textStyle}">
+                        ${t.isSummary ? '📁' : '📋'} ${t.name}
+                    </div>
+                    <div class="gantt-col-bar-container">
+                        <div class="gantt-progress-track">
+                            <div class="${barClass}" style="width: ${t.percent}%"></div>
+                        </div>
+                        <span class="gantt-dates" style="${t.isSummary ? 'font-weight:bold;' : ''}">
+                            ${t.percent}% (${formatStart} au ${formatFinish})
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+        visualCtn.innerHTML = html;
+    }
+
     function chargerImagePlanNiveauDirectTerrain(event) {
         const file = event.target.files[0];
         if (file) {
@@ -512,28 +683,22 @@
             return alert("⚠️ Spécifiez un nom de niveau et sélectionnez une image de plan.");
         }
 
-        // On injecte directement dans le tableau des niveaux de l'affaire ouverte
         chantierActuel.niveaux.push({ nom: nomNiv, plan: planDirectTerrainBase64 });
 
-        // Sauvegarde immédiate
         const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
         if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
 
-        // Met à jour le menu déroulant à l'écran
         document.getElementById('selectNiveauVisite').innerHTML = chantierActuel.niveaux.map((n, i) => `<option value="${i}">${n.nom}</option>`).join('');
-        
-        // Se positionne sur le nouveau plan
         indexNiveauActuel = chantierActuel.niveaux.length - 1;
         document.getElementById('selectNiveauVisite').value = indexNiveauActuel;
         
-        // Nettoyage des champs de saisie
         inputNom.value = "";
         document.getElementById('planDirectInput').value = "";
         planDirectTerrainBase64 = "";
 
         chargerPlanEtPucesDuNiveauActuel();
-        alert(`✅ Nouveau niveau "${nomNiv}" injecté avec succès dans le fichier source de ce chantier !`);
+        alert(`✅ Nouveau niveau "${nomNiv}" injecté avec succès !`);
     }
 
     function importerFichierChantierLocal(event) {
@@ -544,12 +709,10 @@
         reader.onload = function(e) {
             try {
                 const donneesImportees = JSON.parse(e.target.result);
-                
                 if(!donneesImportees.nom || !donneesImportees.niveaux) {
-                    alert("❌ Fichier JSON non reconnu comme un chantier valide.");
+                    alert("❌ Fichier JSON invalide.");
                     return;
                 }
-
                 if(!donneesImportees.id) donneesImportees.id = Date.now();
                 delete donneesImportees.surLeCloud;
 
@@ -563,9 +726,9 @@
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 rafraichirVueAccueil();
                 ouvrirEtChargerChantier(donneesImportees.id);
-                alert(`📁 Chantier "${donneesImportees.nom}" importé avec succès !`);
+                alert(`📁 Chantier "${donneesImportees.nom}" importé !`);
             } catch (err) {
-                alert("❌ Erreur de décodage JSON.");
+                alert("❌ Erreur JSON.");
             }
         };
         reader.readAsText(file);
@@ -576,7 +739,7 @@
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
         const token = localStorage.getItem('git_token');
-        if(!user || !repo || !token) return alert("Renseignez vos identifiants.");
+        if(!user || !repo || !token) return alert("Identifiants non configurés.");
 
         const urlList = `https://api.github.com/repos/${user}/${repo}/contents/`;
         try {
@@ -626,13 +789,13 @@
 
     function sauvegarderChantier(e) {
         e.preventDefault();
-        if(niveauxTemporaires.length === 0) return alert("Veuillez ajouter au moins un niveau.");
+        if(niveauxTemporaires.length === 0) return alert("Ajoutez au moins un niveau.");
         const nouveauChantier = {
             id: Date.now(),
             nom: document.getElementById('nom').value.trim(),
             reference: document.getElementById('reference').value.trim(),
             localisation: document.getElementById('localisation').value.trim(),
-            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: []
+            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: [], planning: []
         };
         
         listeTousChantiers.push(nouveauChantier);
@@ -655,10 +818,6 @@
                 <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Config disponible sur le Cloud' : `📊 ${c.puces ? c.puces.length : 0} puce(s) active(s)`}</div>
             </div>
         `).join('');
-    }
-
-    async function abrirEtChargerChantier(id) {
-        selectionnerChantierParId(id);
     }
 
     async function ouvrirEtChargerChantier(idOuFichier) {
@@ -696,7 +855,10 @@
         document.getElementById('viewEntreprises').innerHTML = chantierActuel.entreprises.map(e => `<span class="enterprise-badge">${e}</span>`).join('') || "Aucune entreprise";
         document.getElementById('selectNiveauVisite').innerHTML = chantierActuel.niveaux.map((n, i) => `<option value="${i}">${n.nom}</option>`).join('');
         indexNiveauActuel = 0;
+        
+        switchTab('tabTerrain');
         chargerPlanEtPucesDuNiveauActuel();
+        dessinerPlanningGantt();
         changerPage('pageChantierDetails');
     }
 
@@ -825,6 +987,45 @@
             });
             blockNiveau.appendChild(ctn); pdfPlansMultiples.appendChild(blockNiveau);
         });
+
+        const pdfGanttSection = document.getElementById('pdfGanttSection');
+        const pdfGanttContainer = document.getElementById('pdfGanttContainer');
+        
+        if (chantierActuel.planning && chantierActuel.planning.length > 0) {
+            pdfGanttSection.style.display = "block";
+            pdfGanttContainer.innerHTML = "";
+            document.getElementById('pdfTitreRemarques').innerText = "3. Tableau des constatations et remarques";
+            document.getElementById('pdfTitrePhotos').innerText = "4. Reportage photographique";
+            
+            let ganttHtml = "";
+            chantierActuel.planning.forEach(t => {
+                const indent = (t.outlineLevel - 1) * 15;
+                const weight = t.isSummary ? "bold" : "normal";
+                const formatStart = t.start ? t.start.split("-").reverse().join("/") : "N/A";
+                const formatFinish = t.finish ? t.finish.split("-").reverse().join("/") : "N/A";
+                
+                ganttHtml += `
+                    <div class="gantt-print-row">
+                        <div class="gantt-print-text" style="padding-left:${indent}px; font-weight:${weight};">
+                            ${t.isSummary ? '•' : '-'} ${t.name}
+                        </div>
+                        <div class="gantt-print-bar-box">
+                            <div class="gantt-print-track">
+                                <div class="gantt-print-bar" style="width:${t.percent}%;"></div>
+                            </div>
+                            <span style="font-size:8.5pt; font-weight:${weight}; white-space:nowrap;">
+                                ${t.percent}% (${formatStart} - ${formatFinish})
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            pdfGanttContainer.innerHTML = ganttHtml;
+        } else {
+            pdfGanttSection.style.display = "none";
+            document.getElementById('pdfTitreRemarques').innerText = "2. Tableau des constatations et remarques";
+            document.getElementById('pdfTitrePhotos').innerText = "3. Reportage photographique";
+        }
 
         const pdfCorpsTableau = document.getElementById('pdfCorpsTableau'); pdfCorpsTableau.innerHTML = "";
         const pucesTriees = [...chantierActuel.puces].sort((a,b) => a.numero - b.numero);
