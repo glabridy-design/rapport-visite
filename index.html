@@ -359,7 +359,6 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap: 8px; flex-wrap: wrap;">
                     <h3 style="margin:0;">Frise Chronologique des Tâches</h3>
                     <div style="display: flex; gap: 8px;">
-                        <!-- ACTION DE PURGE SÉCURISÉE DU GANTT -->
                         <button class="btn btn-small btn-danger" onclick="supprimerPlanningChantierActuelDefinitif()" style="margin:0;">Effacer ce planning 🗑️</button>
                         <button class="btn btn-small btn-success" onclick="sauvegarderAvancementsGanttEnLocal()" style="margin:0;">💾 Sauvegarder les avancements</button>
                     </div>
@@ -564,7 +563,9 @@
         if(!user || !repo || !token) return alert("Sauvegardé en local.");
 
         const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomFichierPropre}`;
+        
+        // AMÉLIORATION : Écrit dans le dossier "chantiers/" qui se crée seul
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${nomFichierPropre}`;
         
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
 
@@ -581,7 +582,7 @@
                 headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
             });
-            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé avec succès !`);
+            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé dans le dossier "chantiers/" !`);
             else alert("Erreur de transfert Cloud.");
         } catch(e) { alert("Erreur réseau."); }
     }
@@ -746,7 +747,6 @@
             return;
         }
 
-        statusLabel.innerText = `Planning opérationnel (${chantierActuel.planning.length} tâches)`;
         ganttArea.style.display = "block";
 
         const dateReferenceDuJour = new Date("2026-07-15");
@@ -833,7 +833,6 @@
         alert("💾 Vos modifications d'avancement de planning ont été enregistrées avec succès !");
     }
 
-    // FONCTION DE PURGE SÉCURISÉE DU PLANNING D'UN CHANTIER
     function supprimerPlanningChantierActuelDefinitif() {
         if(!chantierActuel) return;
         
@@ -841,14 +840,14 @@
         if(conf1) {
             const conf2 = confirm(`⚠️ CETTE ACTION EST IRREVOCABLE : Toutes les modifications d'avancement de cette frise chronologique seront perdues. Confirmer la purge ?`);
             if(conf2) {
-                chantierActuel.planning = []; // Vide le planning
-                summaryTasksRepliees = {};    // Reset l'accordéon
+                chantierActuel.planning = []; 
+                summaryTasksRepliees = {};    
                 
                 const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 
-                dessinerPlanningGantt(); // Réinitialise l'affichage à l'écran
+                dessinerPlanningGantt(); 
                 alert("🗑️ Le planning a été entièrement effacé de ce chantier ! Vous pouvez à présent charger un nouveau fichier .xml propre.");
             }
         }
@@ -926,13 +925,14 @@
         event.target.value = "";
     }
 
+    // AMÉLIORATION : Scan ciblé dans le sous-dossier /chantiers/
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
         const token = localStorage.getItem('git_token');
         if(!user || !repo || !token) return alert("Identifiants non configurés.");
 
-        const urlList = `https://api.github.com/repos/${user}/${repo}/contents/`;
+        const urlList = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/`;
         try {
             const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
             if(!res.ok) throw new Error();
@@ -946,8 +946,8 @@
 
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
-            alert(`✅ Index synchronisé (${listeTousChantiers.length} chantiers).`);
-        } catch(e) { alert("Erreur."); }
+            alert(`✅ Index synchronisé (${listeTousChantiers.length} chantiers trouvés dans "chantiers/").`);
+        } catch(e) { alert("Le dossier 'chantiers/' est encore vide sur le Cloud."); }
     }
 
     function rafraichirListeNiveauxTemporaire() {
@@ -1030,6 +1030,7 @@
         ouvrirEtChargerChantier(idOuFichier);
     }
 
+    // AMÉLIORATION : Pointage ciblé du fichier dans /chantiers/
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
@@ -1038,7 +1039,7 @@
             const user = localStorage.getItem('git_user');
             const repo = localStorage.getItem('git_repo');
             const token = localStorage.getItem('git_token');
-            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/${localTarget.fileName}`;
+            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${localTarget.fileName}`;
             
             try {
                 const resFile = await fetch(urlFile, { headers: { "Authorization": `token ${token}` } });
@@ -1049,7 +1050,7 @@
                 const idx = listeTousChantiers.findIndex(c => c.fileName == localTarget.fileName);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-            } catch(e) { return alert("Erreur Cloud."); }
+            } catch(e) { return alert("Erreur Cloud lors de la récupération."); }
         } else {
             chantierActuel = localTarget;
         }
