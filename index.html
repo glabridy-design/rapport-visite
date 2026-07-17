@@ -564,7 +564,7 @@
 
         const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
         
-        // AMÉLIORATION : Écrit dans le dossier "chantiers/" qui se crée seul
+        // RANGEMENT CIBLÉ CONFORME
         const url = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${nomFichierPropre}`;
         
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
@@ -925,7 +925,7 @@
         event.target.value = "";
     }
 
-    // AMÉLIORATION : Scan ciblé dans le sous-dossier /chantiers/
+    // AMÉLIORATION SÉCURISÉE : Scan ciblé et paré contre la 404 du dossier absent
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -935,7 +935,14 @@
         const urlList = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/`;
         try {
             const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
-            if(!res.ok) throw new Error();
+            if(!res.ok) {
+                // Si l'erreur est une 404, c'est simplement que le dossier n'a pas encore été créé (Aucun push cloud effectué)
+                if(res.status === 404) {
+                    alert("ℹ️ Aucun chantier n'est encore enregistré sur votre espace Cloud GitHub (Le dossier 'chantiers/' se créera automatiquement au premier envoi).");
+                    return;
+                }
+                throw new Error();
+            }
             const fichiers = await res.json();
             const fichiersChantiers = fichiers.filter(f => f.name.startsWith("chantier_") && f.name.endsWith(".json"));
             
@@ -947,7 +954,7 @@
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
             alert(`✅ Index synchronisé (${listeTousChantiers.length} chantiers trouvés dans "chantiers/").`);
-        } catch(e) { alert("Le dossier 'chantiers/' est encore vide sur le Cloud."); }
+        } catch(e) { alert("Erreur réseau ou d'identification lors de la synchronisation cloud."); }
     }
 
     function rafraichirListeNiveauxTemporaire() {
@@ -1030,7 +1037,7 @@
         ouvrirEtChargerChantier(idOuFichier);
     }
 
-    // AMÉLIORATION : Pointage ciblé du fichier dans /chantiers/
+    // CORRECTION APPORTÉE : Pointe de façon ultra-stricte dans chantiers/
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
