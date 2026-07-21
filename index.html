@@ -132,7 +132,7 @@
         
         /* FENÊTRE POPUP MODALE POUR CROQUIS TACTILE */
         .sketch-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-        .sketch-modal-card { background: white; border-radius: 12px; padding: 15px; width: 95%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .sketch-modal-card { background: white; border-radius: 12px; padding: 15px; width: 95%; max-width: 650px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .sketch-canvas-container { border: 2px dashed #999; border-radius: 8px; background: white; touch-action: none; margin: 10px 0; overflow: hidden; text-align: center; }
         #sketchCanvas { background: #fff; cursor: crosshair; display: block; margin: 0 auto; }
         .sketch-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
@@ -394,17 +394,28 @@
     </div>
 </div>
 
-<!-- POP-UP MODALE POUR DESSINER DES CROQUIS -->
+<!-- POP-UP MODALE POUR DESSINER DES CROQUIS AVEC PALETTE ET RÉGLAGE ÉPAISSEUR -->
 <div id="sketchModalOverlay" class="sketch-modal-overlay">
     <div class="sketch-modal-card">
         <h3 style="margin-top:0; color:#1a73e8;">✏️ Croquis / Schéma à la main</h3>
         <div class="sketch-tools">
-            <div style="display:flex; gap:6px; align-items:center;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <span style="font-size:13px; font-weight:bold;">Couleur :</span>
-                <div class="color-btn selected" style="background:black;" onclick="choisirCouleurPinceau('black', this)"></div>
-                <div class="color-btn" style="background:#d93025;" onclick="choisirCouleurPinceau('#d93025', this)"></div>
-                <div class="color-btn" style="background:#1a73e8;" onclick="choisirCouleurPinceau('#1a73e8', this)"></div>
-                <button type="button" class="btn btn-small" style="background:#5f6368; padding:4px 8px;" onclick="activerGommePinceau()">🧽 Gomme</button>
+                <!-- PALETTE DE COULEURS -->
+                <input type="color" id="sketchColorPicker" value="#000000" style="width:34px; height:32px; border:1px solid #ccc; border-radius:6px; cursor:pointer; padding:0; background:none;" onchange="choisirCouleurPinceau(this.value, null)" title="Choisir une couleur sur la palette">
+                
+                <!-- PASTILLES DE RACCOURCIS RAPIDES -->
+                <div class="color-btn selected" style="background:black;" onclick="choisirCouleurPinceau('#000000', this)" title="Noir"></div>
+                <div class="color-btn" style="background:#d93025;" onclick="choisirCouleurPinceau('#d93025', this)" title="Rouge"></div>
+                <div class="color-btn" style="background:#1a73e8;" onclick="choisirCouleurPinceau('#1a73e8', this)" title="Bleu"></div>
+                <div class="color-btn" style="background:#28a745;" onclick="choisirCouleurPinceau('#28a745', this)" title="Vert"></div>
+
+                <!-- SELECTEUR ÉPAISSEUR DU PINCEAU -->
+                <span style="font-size:13px; font-weight:bold; margin-left:10px;">Taille :</span>
+                <input type="range" id="sketchBrushSize" min="1" max="20" value="3" style="width:80px; cursor:pointer;" oninput="changerTaillePinceau(this.value)">
+                <span id="brushSizeBadge" style="font-size:12px; font-weight:bold; min-width:25px; color:#1a73e8;">3px</span>
+
+                <button type="button" class="btn btn-small" style="background:#5f6368; padding:4px 8px; margin-left:5px;" onclick="activerGommePinceau()">🧽 Gomme</button>
             </div>
             <button type="button" class="btn btn-small btn-danger" onclick="effacerToutCanvasCroquis()">Effacer tout</button>
         </div>
@@ -511,10 +522,10 @@
     let statutPuceTemporaireResolue = false;
     let summaryTasksRepliees = {};
 
-    // VARIABLES ADDITIONNELLES CROQUIS
+    // VARIABLES CROQUIS & PINCEAU
     let idNoteCroquisEnCours = null;
     let estEnTrainDeDessiner = false;
-    let couleurPinceauCourante = 'black';
+    let couleurPinceauCourante = '#000000';
     let taillePinceauCourante = 3;
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -1174,7 +1185,6 @@
         }
 
         ctn.innerHTML = chantierActuel.notes.map((n, idx) => {
-            // Options des puces du chantier pour le menu déroulant
             let pucesOptions = `<option value="">-- Aucune puce / remarque liée --</option>`;
             if (chantierActuel.puces && chantierActuel.puces.length > 0) {
                 pucesOptions += chantierActuel.puces.map(p =>
@@ -1274,7 +1284,7 @@
         if(rafraichirRendu) rafraichirVueNotes();
     }
 
-    /* GESTION CANVAS DES CROQUIS TACTILES */
+    /* GESTION CANVAS DES CROQUIS TACTILES AVEC COULEUR & ÉPAISSEUR DYNAMIQUE */
     function initialiserModuleCroquisCanvas() {
         const canvas = document.getElementById('sketchCanvas');
         if(!canvas) return;
@@ -1331,6 +1341,12 @@
         canvas.addEventListener('touchend', stopperDessin);
     }
 
+    function changerTaillePinceau(valeur) {
+        taillePinceauCourante = parseInt(valeur);
+        const badge = document.getElementById('brushSizeBadge');
+        if(badge) badge.innerText = valeur + "px";
+    }
+
     function ouvrirCanvasPourNote(indexNote) {
         idNoteCroquisEnCours = indexNote;
         const canvas = document.getElementById('sketchCanvas');
@@ -1338,17 +1354,27 @@
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        couleurPinceauCourante = 'black';
-        taillePinceauCourante = 3;
+        couleurPinceauCourante = '#000000';
+        taillePinceauCourante = parseInt(document.getElementById('sketchBrushSize').value || 3);
         
+        const picker = document.getElementById('sketchColorPicker');
+        if(picker) picker.value = '#000000';
+        
+        document.querySelectorAll('.sketch-tools .color-btn').forEach(b => b.classList.remove('selected'));
+        const pastilleNoire = document.querySelector('.sketch-tools .color-btn');
+        if(pastilleNoire) pastilleNoire.classList.add('selected');
+
         document.getElementById('sketchModalOverlay').style.display = 'flex';
     }
 
     function choisirCouleurPinceau(color, btnEl) {
         couleurPinceauCourante = color;
-        taillePinceauCourante = 3;
+        taillePinceauCourante = parseInt(document.getElementById('sketchBrushSize').value || 3);
         document.querySelectorAll('.sketch-tools .color-btn').forEach(b => b.classList.remove('selected'));
         if(btnEl) btnEl.classList.add('selected');
+        
+        const picker = document.getElementById('sketchColorPicker');
+        if(picker) picker.value = color;
     }
 
     function activerGommePinceau() {
