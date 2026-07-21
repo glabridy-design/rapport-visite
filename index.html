@@ -361,10 +361,10 @@
             </div>
         </div>
 
-        <!-- ONGLET PROPRE : NOTES & CROQUIS -->
+        <!-- ONGLET : NOTES & CROQUIS -->
         <div id="tabNotes" class="tab-content">
             <h2>📝 Bloc-notes Libre &amp; Croquis Terrain</h2>
-            <p style="font-size: 14px; color:#5f6368;">Consignez vos consignes, directives de réunion ou schémas à la main sans affecter les puces ou le planning.</p>
+            <p style="font-size: 14px; color:#5f6368;">Consignez vos consignes, directives de réunion ou schémas à la main et liez-les optionnellement à un constat du plan.</p>
             
             <button type="button" class="btn btn-success" style="margin-bottom: 20px; width: auto;" onclick="ajouterNouvelleNote()">+ Nouvelle note</button>
             <div id="listeNotesContainer"></div>
@@ -1163,7 +1163,7 @@
     }
 
     /* ---------------------------------------------------- */
-    /* LOGIQUE NOUVELLE : GESTION DES NOTES ET DES CROQUIS  */
+    /* LOGIQUE : GESTION DES NOTES ET LIAISON PUCE          */
     /* ---------------------------------------------------- */
 
     function rafraichirVueNotes() {
@@ -1173,32 +1173,50 @@
             return;
         }
 
-        ctn.innerHTML = chantierActuel.notes.map((n, idx) => `
-            <div class="note-card">
-                <div class="note-card-header">
-                    <span style="font-size:12px; color:#5f6368; font-weight:bold;">🕒 Créé le ${n.dateCreation}</span>
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <label class="filter-checkbox-label" style="font-size:12px; color:#1a73e8;">
-                            <input type="checkbox" ${n.inclurePdf ? 'checked' : ''} onchange="basculerOptionNotePdf(${idx}, this.checked)">
-                            📄 Imprimer au PDF
-                        </label>
-                        <button type="button" class="btn btn-small btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNoteIndex(${idx})">🗑️</button>
+        ctn.innerHTML = chantierActuel.notes.map((n, idx) => {
+            // Options des puces du chantier pour le menu déroulant
+            let pucesOptions = `<option value="">-- Aucune puce / remarque liée --</option>`;
+            if (chantierActuel.puces && chantierActuel.puces.length > 0) {
+                pucesOptions += chantierActuel.puces.map(p =>
+                    `<option value="${p.id}" ${n.puceLieeId == p.id ? 'selected' : ''}>📍 Puce N° ${p.numero} (${p.niveauNom}${p.zonePrecis ? ' - ' + p.zonePrecis : ''})</option>`
+                ).join('');
+            }
+
+            return `
+                <div class="note-card">
+                    <div class="note-card-header">
+                        <span style="font-size:12px; color:#5f6368; font-weight:bold;">🕒 Créé le ${n.dateCreation}</span>
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <label class="filter-checkbox-label" style="font-size:12px; color:#1a73e8;">
+                                <input type="checkbox" ${n.inclurePdf ? 'checked' : ''} onchange="basculerOptionNotePdf(${idx}, this.checked)">
+                                📄 Imprimer au PDF
+                            </label>
+                            <button type="button" class="btn btn-small btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNoteIndex(${idx})">🗑️</button>
+                        </div>
                     </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size:12px; margin:0 0 4px 0; color:#1a73e8;">🔗 Lier à une remarque du plan (Optionnel) :</label>
+                        <select style="padding:8px; font-size:13px; background:#fff;" onchange="enregistrerLienPuceNote(${idx}, this.value)">
+                            ${pucesOptions}
+                        </select>
+                    </div>
+
+                    <textarea style="width:100%; border:1px solid #dadce0; border-radius:6px; padding:8px; font-size:14px;" rows="3" onchange="enregistrerTexteNote(${idx}, this.value)" placeholder="Saisissez vos observations libres...">${n.texte || ''}</textarea>
+                    
+                    ${n.croquis ? `
+                        <div style="margin-top:10px; position:relative; display:inline-block;">
+                            <img src="${n.croquis}" class="note-sketch-img" alt="Croquis">
+                            <button type="button" class="btn btn-small btn-danger" style="position:absolute; top:15px; right:5px; padding:3px 6px; font-size:11px;" onclick="supprimerCroquisDeNote(${idx})">Effacer croquis ✖</button>
+                        </div>
+                    ` : `
+                        <div style="margin-top:10px;">
+                            <button type="button" class="btn btn-small" style="background:#24292e; font-size:13px;" onclick="ouvrirCanvasPourNote(${idx})">✏️ Dessiner un croquis à la main</button>
+                        </div>
+                    `}
                 </div>
-                <textarea style="width:100%; border:1px solid #dadce0; border-radius:6px; padding:8px; font-size:14px;" rows="3" onchange="enregistrerTexteNote(${idx}, this.value)" placeholder="Saisissez vos observations libres...">${n.texte || ''}</textarea>
-                
-                ${n.croquis ? `
-                    <div style="margin-top:10px; position:relative; display:inline-block;">
-                        <img src="${n.croquis}" class="note-sketch-img" alt="Croquis">
-                        <button type="button" class="btn btn-small btn-danger" style="position:absolute; top:15px; right:5px; padding:3px 6px; font-size:11px;" onclick="supprimerCroquisDeNote(${idx})">Effacer croquis ✖</button>
-                    </div>
-                ` : `
-                    <div style="margin-top:10px;">
-                        <button type="button" class="btn btn-small" style="background:#24292e; font-size:13px;" onclick="ouvrirCanvasPourNote(${idx})">✏️ Dessiner un croquis à la main</button>
-                    </div>
-                `}
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function ajouterNouvelleNote() {
@@ -1209,11 +1227,18 @@
             id: Date.now(),
             texte: "",
             croquis: null,
+            puceLieeId: null,
             inclurePdf: true,
             dateCreation: new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         });
 
         sauvegarderLocalEtMettreAJourNotes();
+    }
+
+    function enregistrerLienPuceNote(indexNote, puceIdVal) {
+        if(!chantierActuel || !chantierActuel.notes[indexNote]) return;
+        chantierActuel.notes[indexNote].puceLieeId = puceIdVal ? parseFloat(puceIdVal) : null;
+        sauvegarderLocalEtMettreAJourNotes(false);
     }
 
     function enregistrerTexteNote(index, texteVal) {
@@ -1618,15 +1643,26 @@
             document.getElementById('pdfHeaderNotes').innerText = `${compteurChapitreIndex}. Notes & Schémas de visite`;
             compteurChapitreIndex++;
 
-            pdfNotesContainer.innerHTML = notesImprimables.map(n => `
-                <div style="border:1px solid #000; padding:10px; margin-bottom:12px; page-break-inside:avoid; background:#fff;">
-                    <div style="font-size:9pt; font-weight:bold; color:#555; border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:6px;">
-                        Date : ${n.dateCreation}
+            pdfNotesContainer.innerHTML = notesImprimables.map(n => {
+                let puceLieeInfo = '';
+                if(n.puceLieeId) {
+                    const puceObj = (chantierActuel.puces || []).find(p => p.id == n.puceLieeId);
+                    if(puceObj) {
+                        puceLieeInfo = `<div style="font-size:9.5pt; font-weight:bold; color:#d93025; margin-bottom:6px;">📍 Associé à la remarque Puce N° ${puceObj.numero} (${puceObj.niveauNom}${puceObj.zonePrecis ? ' - ' + puceObj.zonePrecis : ''})</div>`;
+                    }
+                }
+
+                return `
+                    <div style="border:1px solid #000; padding:10px; margin-bottom:12px; page-break-inside:avoid; background:#fff;">
+                        <div style="font-size:9pt; font-weight:bold; color:#555; border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:6px;">
+                            Date : ${n.dateCreation}
+                        </div>
+                        ${puceLieeInfo}
+                        <div style="font-size:10pt; white-space:pre-wrap;">${n.texte || 'Aucune observation textuelle.'}</div>
+                        ${n.croquis ? `<img src="${n.croquis}" style="max-width:100%; max-height:220px; display:block; margin-top:10px; border:1px solid #888;">` : ''}
                     </div>
-                    <div style="font-size:10pt; white-space:pre-wrap;">${n.texte || 'Aucune observation textuelle.'}</div>
-                    ${n.croquis ? `<img src="${n.croquis}" style="max-width:100%; max-height:220px; display:block; margin-top:10px; border:1px solid #888;">` : ''}
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } else {
             pdfNotesSection.style.display = "none";
         }
