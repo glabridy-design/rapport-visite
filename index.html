@@ -477,6 +477,11 @@
         if(clickedBtn) clickedBtn.classList.add('active');
     }
 
+    // Génère un nom de dossier propre basé sur le nom du chantier
+    function obtenirNomDossierChantier(nomChantier) {
+        return nomChantier.replace(/[^a-zA-Z0-9]/g, "_");
+    }
+
     async function chargerCharteDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -485,13 +490,16 @@
 
         const url = `https://api.github.com/repos/${user}/${repo}/contents/Charte.json?ref=main`;
         try {
-            const res = await fetch(url, { headers: { "Authorization": `token ${token}` } });
+            const res = await fetch(url, { 
+                headers: { 
+                    "Authorization": `token ${token}`,
+                    "Accept": "application/vnd.github.v3.raw"
+                } 
+            });
             if(!res.ok) return;
-            const json = await res.json();
-            const cleanContent = json.content.replace(/\s/g, '');
-            const decodedData = decodeURIComponent(escape(atob(cleanContent)));
-            localStorage.setItem('charte_entreprise_pwa', decodedData);
-            appliquerConfigurationCharte(JSON.parse(decodedData));
+            const textContent = await res.text();
+            localStorage.setItem('charte_entreprise_pwa', textContent);
+            appliquerConfigurationCharte(JSON.parse(textContent));
         } catch(e) {
             const cacheCharte = localStorage.getItem('charte_entreprise_pwa');
             if(cacheCharte) appliquerConfigurationCharte(JSON.parse(cacheCharte));
@@ -550,12 +558,13 @@
         chargerCharteDepuisGitHub();
     }
 
+    // SYNCHRONISATION : ENREGISTREMENT DANS /Nom_Chantier/config.json
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
-        const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
-        chantierActuel.fileName = nomFichierPropre;
+        const nomDossier = obtenirNomDossierChantier(chantierActuel.nom);
+        chantierActuel.folderName = nomDossier;
 
-        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id || c.fileName == chantierActuel.fileName);
+        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id || c.folderName == nomDossier);
         if(index !== -1) listeTousChantiers[index] = chantierActuel;
 
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
@@ -566,7 +575,7 @@
         const token = localStorage.getItem('git_token');
         if(!user || !repo || !token) return alert("Sauvegardé en local.");
 
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${nomFichierPropre}`;
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomDossier}/config.json`;
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
 
         try {
@@ -582,7 +591,7 @@
                 headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
             });
-            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé dans le dossier "chantiers/" !`);
+            if(resPush.ok) alert(`☁️ Chantier "${chantierActuel.nom}" synchronisé avec succès dans le dossier "${nomDossier}/" !`);
             else alert("Erreur de transfert Cloud.");
         } catch(e) { alert("Erreur réseau."); }
     }
@@ -601,7 +610,8 @@
         URL.revokeObjectURL(url);
     }
 
-    function exporterRapportDuJourIncr() {
+    // EXPORT DE LA VISITE DU JOUR DANS LE DÉPÔT /Nom_Chantier/
+    async function exporterRapportDuJourIncr() {
         if(!chantierActuel || !chantierActuel.puces || chantierActuel.puces.length === 0) {
             return alert("Aucune puce active pour générer le rapport.");
         }
@@ -926,34 +936,58 @@
         event.target.value = "";
     }
 
+    // TELECHARGEMENT DES CHANTIERS DEPUIS LEUR DÉPÔT DÉDIÉ (Scan des sous-dossiers /Nom_Chantier/config.json)
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
         const token = localStorage.getItem('git_token');
         if(!user || !repo || !token) return alert("Identifiants non configurés.");
 
-        const urlList = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/`;
+        const urlRoot = `https://api.github.com/repos/${user}/${repo}/contents/`;
         try {
-            const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
-            if(!res.ok) {
-                if(res.status === 404) {
-                    alert("ℹ️ Aucun chantier n'est encore enregistré dans 'chantiers/' sur GitHub.");
-                    return;
-                }
-                throw new Error();
-            }
-            const fichiers = await res.json();
-            const fichiersChantiers = fichiers.filter(f => f.name.startsWith("chantier_") && f.name.endsWith(".json"));
+            const res = await fetch(urlRoot, { headers: { "Authorization": `token ${token}` } });
+            if(!res.ok) throw new Error("Code HTTP " + res.status);
             
-            listeTousChantiers = fichiersChantiers.map(f => {
-                const nomPropre = f.name.replace("chantier_", "").replace(".json", "").replace(/_/g, " ");
-                return { id: f.sha, nom: nomPropre, reference: "Cloud", localisation: "GitHub", surLeCloud: true, fileName: f.name };
-            });
+            const tousLesElements = await res.json();
+            // Filtre uniquement les dossiers (pour chaque chantier)
+            const dossiersChantiers = tousLesElements.filter(item => item.type === "dir");
+
+            if(dossiersChantiers.length === 0) {
+                alert("ℹ️ Aucun répertoire de chantier n'a été trouvé sur votre espace Cloud.");
+                return;
+            }
+
+            let nbCharges = 0;
+            for(let d of dossiersChantiers) {
+                const configUrl = `https://api.github.com/repos/${user}/${repo}/contents/${d.name}/config.json`;
+                const resConfig = await fetch(configUrl, {
+                    headers: {
+                        "Authorization": `token ${token}`,
+                        "Accept": "application/vnd.github.v3.raw" // Récupération brute direct sans troncature Base64
+                    }
+                });
+
+                if(resConfig.ok) {
+                    const rawText = await resConfig.text();
+                    try {
+                        const cObj = JSON.parse(rawText);
+                        cObj.folderName = d.name;
+                        delete cObj.surLeCloud;
+
+                        const idx = listeTousChantiers.findIndex(x => x.id == cObj.id || x.folderName == d.name);
+                        if(idx !== -1) listeTousChantiers[idx] = cObj;
+                        else listeTousChantiers.push(cObj);
+                        nbCharges++;
+                    } catch(e) {}
+                }
+            }
 
             localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
             rafraichirVueAccueil();
-            alert(`✅ Index synchronisé (${listeTousChantiers.length} chantiers trouvés dans "chantiers/").`);
-        } catch(e) { alert("Erreur réseau ou d'identification lors de la synchronisation cloud."); }
+            alert(`✅ Synchronisation réussie : ${nbCharges} dossier(s) de chantier téléchargé(s) !`);
+        } catch(e) {
+            alert("Erreur réseau ou d'identification lors de la synchronisation : " + e.message);
+        }
     }
 
     function rafraichirListeNiveauxTemporaire() {
@@ -993,7 +1027,7 @@
             nom: nouveauNom,
             reference: document.getElementById('reference').value.trim(),
             localisation: document.getElementById('localisation').value.trim(),
-            fileName: "chantier_" + nouveauNom.replace(/[^a-zA-Z0-9]/g, "_") + ".json",
+            folderName: obtenirNomDossierChantier(nouveauNom),
             niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: [], planning: []
         };
         
@@ -1011,11 +1045,11 @@
         const container = document.getElementById('listeChantiers');
         if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif.</p>"; return; }
         container.innerHTML = listeTousChantiers.map(c => `
-            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.fileName || c.id}')">
+            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id}')">
                 <h3 style="margin:0; padding-right:100px;">🏢 ${c.nom}</h3>
                 <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
-                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Config disponible sur le Cloud' : `📊 ${c.puces ? c.puces.length : 0} puce(s) active(s)`}</div>
-                <button type="button" class="btn-delete-card" onclick="supprimerChantierDefinitif(event, '${c.id || c.fileName}', '${c.nom.replace(/'/g, "\\'")}')">Supprimer 🗑️</button>
+                <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">📊 ${c.puces ? c.puces.length : 0} puce(s) active(s)</div>
+                <button type="button" class="btn-delete-card" onclick="supprimerChantierDefinitif(event, '${c.id}', '${c.nom.replace(/'/g, "\\'")}')">Supprimer 🗑️</button>
             </div>
         `).join('');
     }
@@ -1027,50 +1061,16 @@
         if (confirmation1) {
             const confirmation2 = confirm(`⚠️ ATTENTION : Cette action effacera toutes les puces, photos et plannings associés à ce chantier de manière irréversible. Confirmer ?`);
             if (confirmation2) {
-                listeTousChantiers = listeTousChantiers.filter(c => (c.id != idTarget && c.fileName != idTarget));
+                listeTousChantiers = listeTousChantiers.filter(c => c.id != idTarget);
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
                 rafraichirVueAccueil();
             }
         }
     }
 
-    async function abrirEtChargerChantier(idOuFichier) {
-        ouvrirEtChargerChantier(idOuFichier);
-    }
-
-    // OUVERTURE ET DÉCODAGE BASE64 NETTOYÉ
-    async function ouvrirEtChargerChantier(idOuFichier) {
-        let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
-        if(!localTarget) return;
-
-        if(localTarget.surLeCloud) {
-            const user = localStorage.getItem('git_user');
-            const repo = localStorage.getItem('git_repo');
-            const token = localStorage.getItem('git_token');
-            const targetFileName = localTarget.fileName || ("chantier_" + localTarget.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json");
-            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${targetFileName}`;
-            
-            try {
-                const resFile = await fetch(urlFile, { headers: { "Authorization": `token ${token}` } });
-                if(!resFile.ok) throw new Error();
-                const jsonContent = await resFile.json();
-                
-                // NETTOYAGE CRUCIAL DES SAUTS DE LIGNE ET ESPACES EN BASE64
-                const cleanBase64 = jsonContent.content.replace(/\s/g, '');
-                const decodedData = decodeURIComponent(escape(atob(cleanBase64)));
-                chantierActuel = JSON.parse(decodedData);
-                
-                chantierActuel.fileName = targetFileName;
-                chantierActuel.surLeCloud = false;
-
-                const idx = listeTousChantiers.findIndex(c => c.fileName == targetFileName || c.id == localTarget.id);
-                if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
-                localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-            } catch(e) { return alert("Erreur Cloud lors de la récupération : " + e.message); }
-        } else {
-            chantierActuel = localTarget;
-        }
-        selectionnerChantierParId(chantierActuel.id);
+    // OUVERTURE LOCAL INSTANTANÉE (DÉJÀ TÉLÉCHARGÉ VIA SYNC CLOUD)
+    function ouvrirEtChargerChantier(id) {
+        selectionnerChantierParId(id);
     }
 
     function selectionnerChantierParId(id) {
