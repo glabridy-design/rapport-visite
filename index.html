@@ -19,15 +19,15 @@
         .nav-bar::after { content: ""; display: table; clear: both; }
         .btn-back { float: left; background: #5f6368; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         
-        /* MENU DÉROULANT DES ACTIONS */
+        /* MENU DÉROULANT DES ACTIONS REFAIT (CLIC) */
         .dropdown-container { float: right; position: relative; display: inline-block; }
         .btn-dropdown { background: #1a73e8; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
         .btn-dropdown:hover { background: #1557b0; }
         .dropdown-menu { display: none; position: absolute; right: 0; top: 100%; background-color: white; min-width: 240px; box-shadow: 0px 8px 16px rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid #dadce0; z-index: 100; margin-top: 5px; overflow: hidden; }
+        .dropdown-menu.show { display: block; }
         .dropdown-menu button { color: #333; padding: 12px 16px; text-decoration: none; display: block; width: 100%; border: none; background: none; text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #f1f3f4; }
         .dropdown-menu button:last-child { border-bottom: none; }
         .dropdown-menu button:hover { background-color: #f8f9fa; color: #1a73e8; }
-        .dropdown-container:hover .dropdown-menu { display: block; }
 
         /* Onglets internes */
         .tabs-container { display: flex; border-bottom: 2px solid #dadce0; margin-bottom: 20px; gap: 5px; clear: both; padding-top: 15px; }
@@ -182,7 +182,7 @@
 <div class="app-container">
 
     <div id="pageAccueil" class="section active">
-        <h1>Conducteur de Chantier PWA</h1>
+        <h1>Rapport de visite de site</h1>
         
         <div class="config-box">
             <strong>🔑 Synchronisation Multi-Appareil GitHub :</strong><br>
@@ -242,13 +242,13 @@
             <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button>
             
             <div class="dropdown-container no-print">
-                <button class="btn-dropdown">⚙️ Actions &amp; Exports ▾</button>
-                <div class="dropdown-menu">
+                <button class="btn-dropdown" onclick="basculerMenuActions(event)">⚙️ Actions &amp; Exports ▾</button>
+                <div id="dropdownMenuActions" class="dropdown-menu">
                     <button onclick="declencherImpression()">🖨️ Exporter en PDF</button>
                     <button onclick="sauvegarderEtSynchroniser()">☁️ Synchro Cloud (.json)</button>
                     <button onclick="exporterChantierEnFichierLocal()">💾 Exporter l'Affaire (.json)</button>
                     <button onclick="exporterRapportDuJourIncr()">⏏️ Exporter Visite du Jour (.json)</button>
-                    <button onclick="document.getElementById('importHistoriquePucesInput').click()">📥 Fusionner un Historique (.json)</button>
+                    <button onclick="document.getElementById('importHistoriquePucesInput').click(); fermerMenuActions();">📥 Fusionner un Historique (.json)</button>
                 </div>
             </div>
             <input type="file" id="importHistoriquePucesInput" accept=".json" style="display:none;" onchange="injecterHistoriqueRemarquesJson(event)">
@@ -394,23 +394,20 @@
     </div>
 </div>
 
-<!-- POP-UP MODALE POUR DESSINER DES CROQUIS AVEC PALETTE ET RÉGLAGE ÉPAISSEUR -->
+<!-- POP-UP MODALE POUR DESSINER DES CROQUIS -->
 <div id="sketchModalOverlay" class="sketch-modal-overlay">
     <div class="sketch-modal-card">
         <h3 style="margin-top:0; color:#1a73e8;">✏️ Croquis / Schéma à la main</h3>
         <div class="sketch-tools">
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <span style="font-size:13px; font-weight:bold;">Couleur :</span>
-                <!-- PALETTE DE COULEURS -->
                 <input type="color" id="sketchColorPicker" value="#000000" style="width:34px; height:32px; border:1px solid #ccc; border-radius:6px; cursor:pointer; padding:0; background:none;" onchange="choisirCouleurPinceau(this.value, null)" title="Choisir une couleur sur la palette">
                 
-                <!-- PASTILLES DE RACCOURCIS RAPIDES -->
                 <div class="color-btn selected" style="background:black;" onclick="choisirCouleurPinceau('#000000', this)" title="Noir"></div>
                 <div class="color-btn" style="background:#d93025;" onclick="choisirCouleurPinceau('#d93025', this)" title="Rouge"></div>
                 <div class="color-btn" style="background:#1a73e8;" onclick="choisirCouleurPinceau('#1a73e8', this)" title="Bleu"></div>
                 <div class="color-btn" style="background:#28a745;" onclick="choisirCouleurPinceau('#28a745', this)" title="Vert"></div>
 
-                <!-- SELECTEUR ÉPAISSEUR DU PINCEAU -->
                 <span style="font-size:13px; font-weight:bold; margin-left:10px;">Taille :</span>
                 <input type="range" id="sketchBrushSize" min="1" max="20" value="3" style="width:80px; cursor:pointer;" oninput="changerTaillePinceau(this.value)">
                 <span id="brushSizeBadge" style="font-size:12px; font-weight:bold; min-width:25px; color:#1a73e8;">3px</span>
@@ -522,7 +519,6 @@
     let statutPuceTemporaireResolue = false;
     let summaryTasksRepliees = {};
 
-    // VARIABLES CROQUIS & PINCEAU
     let idNoteCroquisEnCours = null;
     let estEnTrainDeDessiner = false;
     let couleurPinceauCourante = '#000000';
@@ -540,7 +536,27 @@
         }
         await chargerCharteDepuisGitHub();
         initialiserModuleCroquisCanvas();
+
+        // GESTION FERMETURE MENU DÉROULANT AU CLIC EXTÉRIEUR
+        document.addEventListener('click', function(e) {
+            const dropdown = document.querySelector('.dropdown-container');
+            if (dropdown && !dropdown.contains(e.target)) {
+                fermerMenuActions();
+            }
+        });
     });
+
+    /* GESTION ROBUSTE DU MENU DÉROULANT DES ACTIONS */
+    function basculerMenuActions(e) {
+        if(e) e.stopPropagation();
+        const menu = document.getElementById('dropdownMenuActions');
+        if(menu) menu.classList.toggle('show');
+    }
+
+    function fermerMenuActions() {
+        const menu = document.getElementById('dropdownMenuActions');
+        if(menu) menu.classList.remove('show');
+    }
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -632,6 +648,7 @@
     }
 
     async function sauvegarderEtSynchroniser() {
+        fermerMenuActions();
         if(!chantierActuel) return;
         const nomDossier = obtenirNomDossierChantier(chantierActuel.nom);
         chantierActuel.folderName = nomDossier;
@@ -669,6 +686,7 @@
     }
 
     function exporterChantierEnFichierLocal() {
+        fermerMenuActions();
         if(!chantierActuel) return;
         const stringData = JSON.stringify(chantierActuel, null, 2);
         const blob = new Blob([stringData], { type: "application/json" });
@@ -683,6 +701,7 @@
     }
 
     async function exporterRapportDuJourIncr() {
+        fermerMenuActions();
         if(!chantierActuel || !chantierActuel.puces || chantierActuel.puces.length === 0) {
             return alert("Aucune puce active pour générer le rapport.");
         }
@@ -1609,6 +1628,7 @@
     function fermerChantierActuel() { chantierActuel = null; changerPage('pageAccueil'); }
 
     function declencherImpression() {
+        fermerMenuActions();
         if (!chantierActuel) return;
 
         const imprimerPlans = document.getElementById('printOptPlans').checked;
