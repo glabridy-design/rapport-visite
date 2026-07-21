@@ -488,7 +488,8 @@
             const res = await fetch(url, { headers: { "Authorization": `token ${token}` } });
             if(!res.ok) return;
             const json = await res.json();
-            const decodedData = decodeURIComponent(escape(atob(json.content)));
+            const cleanContent = json.content.replace(/\s/g, '');
+            const decodedData = decodeURIComponent(escape(atob(cleanContent)));
             localStorage.setItem('charte_entreprise_pwa', decodedData);
             appliquerConfigurationCharte(JSON.parse(decodedData));
         } catch(e) {
@@ -551,7 +552,10 @@
 
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
-        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
+        chantierActuel.fileName = nomFichierPropre;
+
+        const index = listeTousChantiers.findIndex(c => c.id == chantierActuel.id || c.fileName == chantierActuel.fileName);
         if(index !== -1) listeTousChantiers[index] = chantierActuel;
 
         localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
@@ -562,11 +566,7 @@
         const token = localStorage.getItem('git_token');
         if(!user || !repo || !token) return alert("Sauvegardé en local.");
 
-        const nomFichierPropre = "chantier_" + chantierActuel.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json";
-        
-        // RANGEMENT CIBLÉ CONFORME
         const url = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${nomFichierPropre}`;
-        
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(chantierActuel))));
 
         try {
@@ -631,7 +631,7 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        alert("⏏️ Votre rapport de visite isolé du jour a été téléchargé avec succès ! (Rien n'a été effacé de l'écran)");
+        alert("⏏️ Votre rapport de visite isolé du jour a été téléchargé avec succès !");
     }
 
     function injecterHistoriqueRemarquesJson(event) {
@@ -747,6 +747,7 @@
             return;
         }
 
+        statusLabel.innerText = `Planning opérationnel (${chantierActuel.planning.length} tâches)`;
         ganttArea.style.display = "block";
 
         const dateReferenceDuJour = new Date("2026-07-15");
@@ -925,7 +926,6 @@
         event.target.value = "";
     }
 
-    // AMÉLIORATION SÉCURISÉE : Scan ciblé et paré contre la 404 du dossier absent
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -936,9 +936,8 @@
         try {
             const res = await fetch(urlList, { headers: { "Authorization": `token ${token}` } });
             if(!res.ok) {
-                // Si l'erreur est une 404, c'est simplement que le dossier n'a pas encore été créé (Aucun push cloud effectué)
                 if(res.status === 404) {
-                    alert("ℹ️ Aucun chantier n'est encore enregistré sur votre espace Cloud GitHub (Le dossier 'chantiers/' se créera automatiquement au premier envoi).");
+                    alert("ℹ️ Aucun chantier n'est encore enregistré dans 'chantiers/' sur GitHub.");
                     return;
                 }
                 throw new Error();
@@ -988,11 +987,13 @@
     function sauvegarderChantier(e) {
         e.preventDefault();
         if(niveauxTemporaires.length === 0) return alert("Ajoutez au moins un niveau.");
+        const nouveauNom = document.getElementById('nom').value.trim();
         const nouveauChantier = {
             id: Date.now(),
-            nom: document.getElementById('nom').value.trim(),
+            nom: nouveauNom,
             reference: document.getElementById('reference').value.trim(),
             localisation: document.getElementById('localisation').value.trim(),
+            fileName: "chantier_" + nouveauNom.replace(/[^a-zA-Z0-9]/g, "_") + ".json",
             niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: [], planning: []
         };
         
@@ -1010,7 +1011,7 @@
         const container = document.getElementById('listeChantiers');
         if (listeTousChantiers.length === 0) { container.innerHTML = "<p>Aucun chantier actif.</p>"; return; }
         container.innerHTML = listeTousChantiers.map(c => `
-            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.id || c.fileName}')">
+            <div class="chantier-card" onclick="ouvrirEtChargerChantier('${c.fileName || c.id}')">
                 <h3 style="margin:0; padding-right:100px;">🏢 ${c.nom}</h3>
                 <p style="margin:5px 0 0 0; font-size:13px; color:#666;">Ref : ${c.reference} — Lieu : ${c.localisation}</p>
                 <div style="margin-top:5px; font-size:11px; color:#1a73e8; font-weight:bold;">${c.surLeCloud ? '☁️ Config disponible sur le Cloud' : `📊 ${c.puces ? c.puces.length : 0} puce(s) active(s)`}</div>
@@ -1037,7 +1038,7 @@
         ouvrirEtChargerChantier(idOuFichier);
     }
 
-    // CORRECTION APPORTÉE : Pointe de façon ultra-stricte dans chantiers/
+    // OUVERTURE ET DÉCODAGE BASE64 NETTOYÉ
     async function ouvrirEtChargerChantier(idOuFichier) {
         let localTarget = listeTousChantiers.find(c => c.id == idOuFichier || c.fileName == idOuFichier);
         if(!localTarget) return;
@@ -1046,18 +1047,26 @@
             const user = localStorage.getItem('git_user');
             const repo = localStorage.getItem('git_repo');
             const token = localStorage.getItem('git_token');
-            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${localTarget.fileName}`;
+            const targetFileName = localTarget.fileName || ("chantier_" + localTarget.nom.replace(/[^a-zA-Z0-9]/g, "_") + ".json");
+            const urlFile = `https://api.github.com/repos/${user}/${repo}/contents/chantiers/${targetFileName}`;
             
             try {
                 const resFile = await fetch(urlFile, { headers: { "Authorization": `token ${token}` } });
                 if(!resFile.ok) throw new Error();
-                const decodedData = decodeURIComponent(escape(atob((await resFile.json()).content)));
+                const jsonContent = await resFile.json();
+                
+                // NETTOYAGE CRUCIAL DES SAUTS DE LIGNE ET ESPACES EN BASE64
+                const cleanBase64 = jsonContent.content.replace(/\s/g, '');
+                const decodedData = decodeURIComponent(escape(atob(cleanBase64)));
                 chantierActuel = JSON.parse(decodedData);
                 
-                const idx = listeTousChantiers.findIndex(c => c.fileName == localTarget.fileName);
+                chantierActuel.fileName = targetFileName;
+                chantierActuel.surLeCloud = false;
+
+                const idx = listeTousChantiers.findIndex(c => c.fileName == targetFileName || c.id == localTarget.id);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
-            } catch(e) { return alert("Erreur Cloud lors de la récupération."); }
+            } catch(e) { return alert("Erreur Cloud lors de la récupération : " + e.message); }
         } else {
             chantierActuel = localTarget;
         }
