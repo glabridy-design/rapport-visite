@@ -125,6 +125,20 @@
         .entreprises-selection-list { max-height: 120px; overflow-y: auto; background: white; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; margin-top: 5px; }
         .entreprise-checkbox-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer; }
 
+        /* STYLE RESSORTI POUR L'ONGLET NOTES & CROQUIS */
+        .note-card { background: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .note-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f3f4; padding-bottom: 8px; }
+        .note-sketch-img { max-width: 100%; max-height: 250px; border: 1px solid #ccc; border-radius: 6px; margin-top: 10px; display: block; background: #fff; }
+        
+        /* FENÊTRE POPUP MODALE POUR CROQUIS TACTILE */
+        .sketch-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+        .sketch-modal-card { background: white; border-radius: 12px; padding: 15px; width: 95%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .sketch-canvas-container { border: 2px dashed #999; border-radius: 8px; background: white; touch-action: none; margin: 10px 0; overflow: hidden; text-align: center; }
+        #sketchCanvas { background: #fff; cursor: crosshair; display: block; margin: 0 auto; }
+        .sketch-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+        .color-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,0.5); }
+        .color-btn.selected { transform: scale(1.2); border-color: #1a73e8; }
+
         @media print {
             @page { size: auto; margin: 0mm; }
             body { background: white; color: black; font-size: 11pt; padding: 15mm; }
@@ -168,7 +182,7 @@
 <div class="app-container">
 
     <div id="pageAccueil" class="section active">
-        <h1>Rapport de visite de site</h1>
+        <h1>Conducteur de Chantier PWA</h1>
         
         <div class="config-box">
             <strong>🔑 Synchronisation Multi-Appareil GitHub :</strong><br>
@@ -248,6 +262,7 @@
 
         <div class="tabs-container no-print">
             <button class="tab-button active" onclick="switchTab('tabTerrain')">🏗️ Saisie Terrain</button>
+            <button class="tab-button" onclick="switchTab('tabNotes')">📝 Notes &amp; Croquis</button>
             <button class="tab-button" onclick="switchTab('tabGantt')">📅 Planning &amp; Gantt (Pilotage)</button>
         </div>
 
@@ -334,6 +349,7 @@
                 <h3 style="color:#0b57d0; font-size:14px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">⚙️ Options d'impression du rapport PDF</h3>
                 <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom: 10px;">
                     <label class="filter-checkbox-label"><input type="checkbox" id="printOptPlans" checked> 🗺️ Imprimer les plans</label>
+                    <label class="filter-checkbox-label"><input type="checkbox" id="printOptNotes" checked> 📝 Imprimer les notes et croquis</label>
                     <label class="filter-checkbox-label"><input type="checkbox" id="printOptGantt" checked> 📅 Imprimer le Gantt</label>
                     <label class="filter-checkbox-label"><input type="checkbox" id="printOptTableau" checked> 📊 Imprimer le tableau</label>
                     <label class="filter-checkbox-label"><input type="checkbox" id="printOptPhotos" checked> 📷 Imprimer le reportage photo</label>
@@ -343,6 +359,15 @@
                     <label class="filter-checkbox-label" style="color:#1e8449;"><input type="checkbox" id="printOptRemarquesLevees" checked> 🟢 Inclure Remarques Levées</label>
                 </div>
             </div>
+        </div>
+
+        <!-- ONGLET PROPRE : NOTES & CROQUIS -->
+        <div id="tabNotes" class="tab-content">
+            <h2>📝 Bloc-notes Libre &amp; Croquis Terrain</h2>
+            <p style="font-size: 14px; color:#5f6368;">Consignez vos consignes, directives de réunion ou schémas à la main sans affecter les puces ou le planning.</p>
+            
+            <button type="button" class="btn btn-success" style="margin-bottom: 20px; width: auto;" onclick="ajouterNouvelleNote()">+ Nouvelle note</button>
+            <div id="listeNotesContainer"></div>
         </div>
 
         <div id="tabGantt" class="tab-content">
@@ -365,6 +390,32 @@
                 </div>
                 <div id="ganttVisualContainer" class="gantt-chart-container"></div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- POP-UP MODALE POUR DESSINER DES CROQUIS -->
+<div id="sketchModalOverlay" class="sketch-modal-overlay">
+    <div class="sketch-modal-card">
+        <h3 style="margin-top:0; color:#1a73e8;">✏️ Croquis / Schéma à la main</h3>
+        <div class="sketch-tools">
+            <div style="display:flex; gap:6px; align-items:center;">
+                <span style="font-size:13px; font-weight:bold;">Couleur :</span>
+                <div class="color-btn selected" style="background:black;" onclick="choisirCouleurPinceau('black', this)"></div>
+                <div class="color-btn" style="background:#d93025;" onclick="choisirCouleurPinceau('#d93025', this)"></div>
+                <div class="color-btn" style="background:#1a73e8;" onclick="choisirCouleurPinceau('#1a73e8', this)"></div>
+                <button type="button" class="btn btn-small" style="background:#5f6368; padding:4px 8px;" onclick="activerGommePinceau()">🧽 Gomme</button>
+            </div>
+            <button type="button" class="btn btn-small btn-danger" onclick="effacerToutCanvasCroquis()">Effacer tout</button>
+        </div>
+        
+        <div class="sketch-canvas-container">
+            <canvas id="sketchCanvas" width="550" height="320"></canvas>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn btn-small" style="background:#5f6368;" onclick="fermerFenetreCroquis()">Annuler</button>
+            <button type="button" class="btn btn-small btn-success" onclick="validerEtSauvegarderCroquis()">Valider ce schéma</button>
         </div>
     </div>
 </div>
@@ -414,14 +465,19 @@
         <div id="pdfPlansMultiples"></div>
     </div>
 
+    <div id="pdfNotesSection" class="page-break" style="display:none;">
+        <h2 id="pdfHeaderNotes">2. Notes &amp; Schémas de visite</h2>
+        <div id="pdfNotesContainer" style="margin-top:15px;"></div>
+    </div>
+
     <div id="pdfGanttSection" class="page-break" style="display:none;">
-        <h2 id="pdfHeaderGantt">2. Planning de réalisation (MS Project)</h2>
+        <h2 id="pdfHeaderGantt">3. Planning de réalisation (MS Project)</h2>
         <div id="pdfGanttContainer" style="margin-top:15px; border-top:1px solid #000;"></div>
     </div>
 
     <div id="pdfTableauSection">
         <div class="page-break"></div>
-        <h2 id="pdfTitreRemarques">3. Tableau des constatations et remarques</h2>
+        <h2 id="pdfTitreRemarques">4. Tableau des constatations et remarques</h2>
         <table class="pdf-table">
             <thead>
                 <tr>
@@ -437,7 +493,7 @@
 
     <div id="pdfPhotosSection">
         <div class="page-break"></div>
-        <h2 id="pdfTitrePhotos">4. Reportage photographique</h2>
+        <h2 id="pdfTitrePhotos">5. Reportage photographique</h2>
         <div id="pdfPhotoPagesContainer"></div>
     </div>
 </div>
@@ -455,6 +511,12 @@
     let statutPuceTemporaireResolue = false;
     let summaryTasksRepliees = {};
 
+    // VARIABLES ADDITIONNELLES CROQUIS
+    let idNoteCroquisEnCours = null;
+    let estEnTrainDeDessiner = false;
+    let couleurPinceauCourante = 'black';
+    let taillePinceauCourante = 3;
+
     window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('cloudUser').value = localStorage.getItem('git_user') || '';
         document.getElementById('cloudRepo').value = localStorage.getItem('git_repo') || '';
@@ -466,6 +528,7 @@
             rafraichirVueAccueil();
         }
         await chargerCharteDepuisGitHub();
+        initialiserModuleCroquisCanvas();
     });
 
     function switchTab(tabId) {
@@ -477,7 +540,6 @@
         if(clickedBtn) clickedBtn.classList.add('active');
     }
 
-    // Génère un nom de dossier propre basé sur le nom du chantier
     function obtenirNomDossierChantier(nomChantier) {
         return nomChantier.replace(/[^a-zA-Z0-9]/g, "_");
     }
@@ -558,7 +620,6 @@
         chargerCharteDepuisGitHub();
     }
 
-    // SYNCHRONISATION : ENREGISTREMENT DANS /Nom_Chantier/config.json
     async function sauvegarderEtSynchroniser() {
         if(!chantierActuel) return;
         const nomDossier = obtenirNomDossierChantier(chantierActuel.nom);
@@ -610,7 +671,6 @@
         URL.revokeObjectURL(url);
     }
 
-    // EXPORT DE LA VISITE DU JOUR DANS LE DÉPÔT /Nom_Chantier/
     async function exporterRapportDuJourIncr() {
         if(!chantierActuel || !chantierActuel.puces || chantierActuel.puces.length === 0) {
             return alert("Aucune puce active pour générer le rapport.");
@@ -936,7 +996,6 @@
         event.target.value = "";
     }
 
-    // TELECHARGEMENT DES CHANTIERS DEPUIS LEUR DÉPÔT DÉDIÉ (Scan des sous-dossiers /Nom_Chantier/config.json)
     async function chargerIndexDepuisGitHub() {
         const user = localStorage.getItem('git_user');
         const repo = localStorage.getItem('git_repo');
@@ -949,7 +1008,6 @@
             if(!res.ok) throw new Error("Code HTTP " + res.status);
             
             const tousLesElements = await res.json();
-            // Filtre uniquement les dossiers (pour chaque chantier)
             const dossiersChantiers = tousLesElements.filter(item => item.type === "dir");
 
             if(dossiersChantiers.length === 0) {
@@ -963,7 +1021,7 @@
                 const resConfig = await fetch(configUrl, {
                     headers: {
                         "Authorization": `token ${token}`,
-                        "Accept": "application/vnd.github.v3.raw" // Récupération brute direct sans troncature Base64
+                        "Accept": "application/vnd.github.v3.raw"
                     }
                 });
 
@@ -1028,7 +1086,7 @@
             reference: document.getElementById('reference').value.trim(),
             localisation: document.getElementById('localisation').value.trim(),
             folderName: obtenirNomDossierChantier(nouveauNom),
-            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: [], planning: []
+            niveaux: niveauxTemporaires, entreprises: entreprisesTemporaires, puces: [], planning: [], notes: []
         };
         
         listeTousChantiers.push(nouveauChantier);
@@ -1068,7 +1126,6 @@
         }
     }
 
-    // OUVERTURE LOCAL INSTANTANÉE (DÉJÀ TÉLÉCHARGÉ VIA SYNC CLOUD)
     function ouvrirEtChargerChantier(id) {
         selectionnerChantierParId(id);
     }
@@ -1076,6 +1133,8 @@
     function selectionnerChantierParId(id) {
         chantierActuel = listeTousChantiers.find(c => c.id == id);
         if(!chantierActuel) return;
+        if(!chantierActuel.notes) chantierActuel.notes = [];
+
         document.getElementById('viewNom').innerText = chantierActuel.nom;
         document.getElementById('viewRef').innerText = chantierActuel.reference;
         document.getElementById('viewLoc').innerText = chantierActuel.localisation;
@@ -1087,6 +1146,7 @@
         document.getElementById('chkAfficherLevees').checked = true;
 
         document.getElementById('printOptPlans').checked = true;
+        document.getElementById('printOptNotes').checked = true;
         document.getElementById('printOptGantt').checked = true;
         document.getElementById('printOptTableau').checked = true;
         document.getElementById('printOptPhotos').checked = true;
@@ -1097,9 +1157,207 @@
 
         switchTab('tabTerrain');
         chargerPlanEtPucesDuNiveauActuel();
+        rafraichirVueNotes();
         dessinerPlanningGantt();
         changerPage('pageChantierDetails');
     }
+
+    /* ---------------------------------------------------- */
+    /* LOGIQUE NOUVELLE : GESTION DES NOTES ET DES CROQUIS  */
+    /* ---------------------------------------------------- */
+
+    function rafraichirVueNotes() {
+        const ctn = document.getElementById('listeNotesContainer');
+        if(!chantierActuel || !chantierActuel.notes || chantierActuel.notes.length === 0) {
+            ctn.innerHTML = "<p style='font-style:italic; color:#666;'>Aucune note enregistrée pour ce chantier.</p>";
+            return;
+        }
+
+        ctn.innerHTML = chantierActuel.notes.map((n, idx) => `
+            <div class="note-card">
+                <div class="note-card-header">
+                    <span style="font-size:12px; color:#5f6368; font-weight:bold;">🕒 Créé le ${n.dateCreation}</span>
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <label class="filter-checkbox-label" style="font-size:12px; color:#1a73e8;">
+                            <input type="checkbox" ${n.inclurePdf ? 'checked' : ''} onchange="basculerOptionNotePdf(${idx}, this.checked)">
+                            📄 Imprimer au PDF
+                        </label>
+                        <button type="button" class="btn btn-small btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNoteIndex(${idx})">🗑️</button>
+                    </div>
+                </div>
+                <textarea style="width:100%; border:1px solid #dadce0; border-radius:6px; padding:8px; font-size:14px;" rows="3" onchange="enregistrerTexteNote(${idx}, this.value)" placeholder="Saisissez vos observations libres...">${n.texte || ''}</textarea>
+                
+                ${n.croquis ? `
+                    <div style="margin-top:10px; position:relative; display:inline-block;">
+                        <img src="${n.croquis}" class="note-sketch-img" alt="Croquis">
+                        <button type="button" class="btn btn-small btn-danger" style="position:absolute; top:15px; right:5px; padding:3px 6px; font-size:11px;" onclick="supprimerCroquisDeNote(${idx})">Effacer croquis ✖</button>
+                    </div>
+                ` : `
+                    <div style="margin-top:10px;">
+                        <button type="button" class="btn btn-small" style="background:#24292e; font-size:13px;" onclick="ouvrirCanvasPourNote(${idx})">✏️ Dessiner un croquis à la main</button>
+                    </div>
+                `}
+            </div>
+        `).join('');
+    }
+
+    function ajouterNouvelleNote() {
+        if(!chantierActuel) return;
+        if(!chantierActuel.notes) chantierActuel.notes = [];
+        
+        chantierActuel.notes.unshift({
+            id: Date.now(),
+            texte: "",
+            croquis: null,
+            inclurePdf: true,
+            dateCreation: new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        });
+
+        sauvegarderLocalEtMettreAJourNotes();
+    }
+
+    function enregistrerTexteNote(index, texteVal) {
+        if(!chantierActuel || !chantierActuel.notes[index]) return;
+        chantierActuel.notes[index].texte = texteVal;
+        sauvegarderLocalEtMettreAJourNotes(false);
+    }
+
+    function basculerOptionNotePdf(index, coche) {
+        if(!chantierActuel || !chantierActuel.notes[index]) return;
+        chantierActuel.notes[index].inclurePdf = coche;
+        sauvegarderLocalEtMettreAJourNotes(false);
+    }
+
+    function supprimerNoteIndex(index) {
+        if(!chantierActuel || !chantierActuel.notes[index]) return;
+        if(confirm("Voulez-vous vraiment supprimer cette note ?")) {
+            chantierActuel.notes.splice(index, 1);
+            sauvegarderLocalEtMettreAJourNotes(true);
+        }
+    }
+
+    function supprimerCroquisDeNote(index) {
+        if(!chantierActuel || !chantierActuel.notes[index]) return;
+        chantierActuel.notes[index].croquis = null;
+        sauvegarderLocalEtMettreAJourNotes(true);
+    }
+
+    function sauvegarderLocalEtMettreAJourNotes(rafraichirRendu = true) {
+        const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
+        if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
+        localStorage.setItem('liste_chantiers_pwa', JSON.stringify(listeTousChantiers));
+        if(rafraichirRendu) rafraichirVueNotes();
+    }
+
+    /* GESTION CANVAS DES CROQUIS TACTILES */
+    function initialiserModuleCroquisCanvas() {
+        const canvas = document.getElementById('sketchCanvas');
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        function obtenirPosRelAtive(evt) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+            if(evt.touches && evt.touches.length > 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function demarrerDessin(e) {
+            e.preventDefault();
+            estEnTrainDeDessiner = true;
+            const pos = obtenirPosRelAtive(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function effectuerDessin(e) {
+            if(!estEnTrainDeDessiner) return;
+            e.preventDefault();
+            const pos = obtenirPosRelAtive(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = couleurPinceauCourante;
+            ctx.lineWidth = taillePinceauCourante;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        function stopperDessin(e) {
+            if(estEnTrainDeDessiner) {
+                ctx.closePath();
+                estEnTrainDeDessiner = false;
+            }
+        }
+
+        canvas.addEventListener('mousedown', demarrerDessin);
+        canvas.addEventListener('mousemove', effectuerDessin);
+        canvas.addEventListener('mouseup', stopperDessin);
+        canvas.addEventListener('mouseleave', stopperDessin);
+
+        canvas.addEventListener('touchstart', demarrerDessin, { passive: false });
+        canvas.addEventListener('touchmove', effectuerDessin, { passive: false });
+        canvas.addEventListener('touchend', stopperDessin);
+    }
+
+    function ouvrirCanvasPourNote(indexNote) {
+        idNoteCroquisEnCours = indexNote;
+        const canvas = document.getElementById('sketchCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        couleurPinceauCourante = 'black';
+        taillePinceauCourante = 3;
+        
+        document.getElementById('sketchModalOverlay').style.display = 'flex';
+    }
+
+    function choisirCouleurPinceau(color, btnEl) {
+        couleurPinceauCourante = color;
+        taillePinceauCourante = 3;
+        document.querySelectorAll('.sketch-tools .color-btn').forEach(b => b.classList.remove('selected'));
+        if(btnEl) btnEl.classList.add('selected');
+    }
+
+    function activerGommePinceau() {
+        couleurPinceauCourante = '#ffffff';
+        taillePinceauCourante = 18;
+        document.querySelectorAll('.sketch-tools .color-btn').forEach(b => b.classList.remove('selected'));
+    }
+
+    function effacerToutCanvasCroquis() {
+        const canvas = document.getElementById('sketchCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function fermerFenetreCroquis() {
+        document.getElementById('sketchModalOverlay').style.display = 'none';
+        idNoteCroquisEnCours = null;
+    }
+
+    function validerEtSauvegarderCroquis() {
+        if(idNoteCroquisEnCours === null || !chantierActuel.notes[idNoteCroquisEnCours]) return;
+        const canvas = document.getElementById('sketchCanvas');
+        
+        compresserImage(canvas.toDataURL('image/jpeg', 0.8), 800, 800).then(imgCroquis => {
+            chantierActuel.notes[idNoteCroquisEnCours].croquis = imgCroquis;
+            sauvegarderLocalEtMettreAJourNotes(true);
+            fermerFenetreCroquis();
+        });
+    }
+
+    /* ---------------------------------------------------- */
+    /* LOGIQUE EXISTANTE STRICTEMENT INTACTE                */
+    /* ---------------------------------------------------- */
 
     function chargerPlanEtPucesDuNiveauActuel() {
         if(!chantierActuel || !chantierActuel.niveaux[indexNiveauActuel]) return;
@@ -1303,6 +1561,7 @@
         if (!chantierActuel) return;
 
         const imprimerPlans = document.getElementById('printOptPlans').checked;
+        const imprimerNotes = document.getElementById('printOptNotes').checked;
         const imprimerGantt = document.getElementById('printOptGantt').checked;
         const imprimerTableau = document.getElementById('printOptTableau').checked;
         const imprimerPhotos = document.getElementById('printOptPhotos').checked;
@@ -1347,6 +1606,29 @@
             });
         } else {
             blockPlans.style.display = "none";
+        }
+
+        /* SECTION IMPRESSION DU BLOC NOTES & CROQUIS */
+        const pdfNotesSection = document.getElementById('pdfNotesSection');
+        const pdfNotesContainer = document.getElementById('pdfNotesContainer');
+        const notesImprimables = (chantierActuel.notes || []).filter(n => n.inclurePdf);
+
+        if (imprimerNotes && notesImprimables.length > 0) {
+            pdfNotesSection.style.display = "block";
+            document.getElementById('pdfHeaderNotes').innerText = `${compteurChapitreIndex}. Notes & Schémas de visite`;
+            compteurChapitreIndex++;
+
+            pdfNotesContainer.innerHTML = notesImprimables.map(n => `
+                <div style="border:1px solid #000; padding:10px; margin-bottom:12px; page-break-inside:avoid; background:#fff;">
+                    <div style="font-size:9pt; font-weight:bold; color:#555; border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:6px;">
+                        Date : ${n.dateCreation}
+                    </div>
+                    <div style="font-size:10pt; white-space:pre-wrap;">${n.texte || 'Aucune observation textuelle.'}</div>
+                    ${n.croquis ? `<img src="${n.croquis}" style="max-width:100%; max-height:220px; display:block; margin-top:10px; border:1px solid #888;">` : ''}
+                </div>
+            `).join('');
+        } else {
+            pdfNotesSection.style.display = "none";
         }
 
         const pdfGanttSection = document.getElementById('pdfGanttSection');
