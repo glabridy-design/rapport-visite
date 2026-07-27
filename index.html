@@ -961,7 +961,7 @@
     }
 
     /* ==========================================================================
-       NOUVEAU MOTEUR DE SYNCHRONISATION SMART ET TRANSPARENTE (AVEC GESTION DU 404)
+       NOUVEAU MOTEUR DE SYNCHRONISATION SMART DÉCOUPLÉE (PHOTOS EN FICHIERS SÉPARÉS)
        ========================================================================== */
     function mettreAJourBadgeSynchro(etat, message) {
         const badge = document.getElementById('syncStatusBadge');
@@ -1028,7 +1028,7 @@
             let distantChantier = null;
             let shaDistant = null;
 
-            // 1. Tentative de lecture du fichier distant
+            // 1. Récupération du config.json distant
             const resGet = await fetch(`${urlConfig}?t=${Date.now()}`, {
                 headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
                 cache: "no-store"
@@ -1040,19 +1040,76 @@
                 const contentDecoded = decodeURIComponent(escape(atob(dataJson.content.replace(/\n/g, ''))));
                 distantChantier = JSON.parse(contentDecoded);
             } else if (resGet.status !== 404) {
-                // Si l'erreur est différente de 404 (ex: 401 Unauthorized), on lève une exception
                 throw new Error("Erreur HTTP GitHub " + resGet.status);
             }
 
-            // 2. Fusion intelligente des puces si le fichier existait déjà
+            // 2. Fusion intelligente des puces locales et distantes
             if (distantChantier && distantChantier.puces) {
                 fusionnerChantiersSmart(chantierActuel, distantChantier);
             }
 
-            // 3. Envoi du fichier fusionné ou création initiale sur GitHub
-            const base64Data = convertirTexteEnBase64Utf8(JSON.stringify(chantierActuel, null, 2));
+            // 3. Traitement découplé des médias : envoi des nouvelles photos en fichiers autonomes sur GitHub
+            const copieChantier = JSON.parse(JSON.stringify(chantierActuel));
+
+            if (copieChantier.puces) {
+                for (let p of copieChantier.puces) {
+                    if (p.photos && p.photos.length > 0) {
+                        const cheminsRelatifs = [];
+                        for (let idxPhoto = 0; idxPhoto < p.photos.length; idxPhoto++) {
+                            const photoItem = p.photos[idxPhoto];
+
+                            // Si c'est une image Base64 locale, on l'uploade séparément dans le dossier photos/
+                            if (photoItem && photoItem.startsWith('data:')) {
+                                const ext = photoItem.includes('image/avif') ? 'avif' : (photoItem.includes('image/webp') ? 'webp' : 'jpg');
+                                const nomFichierPhoto = `photos/puce_${p.numero}_photo_${idxPhoto + 1}.${ext}`;
+                                const urlPhotoGit = `https://api.github.com/repos/${user}/${repo}/contents/${nomDossier}/${nomFichierPhoto}`;
+                                const pureBase64 = photoItem.split(',')[1].replace(/[\r\n\s]/g, '');
+
+                                // Vérification / Envoi du fichier image sur GitHub
+                                try {
+                                    let shaPhoto = null;
+                                    const resCheckPhoto = await fetch(`${urlPhotoGit}?t=${Date.now()}`, {
+                                        headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
+                                        cache: "no-store"
+                                    });
+                                    if (resCheckPhoto.ok) {
+                                        const photoInfo = await resCheckPhoto.json();
+                                        shaPhoto = photoInfo.sha;
+                                    }
+
+                                    const bodyPhoto = {
+                                        message: `Upload photo puce ${p.numero}`,
+                                        content: pureBase64
+                                    };
+                                    if (shaPhoto) bodyPhoto.sha = shaPhoto;
+
+                                    await fetch(urlPhotoGit, {
+                                        method: "PUT",
+                                        headers: {
+                                            "Authorization": `token ${token}`,
+                                            "Accept": "application/vnd.github.v3+json",
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(bodyPhoto)
+                                    });
+
+                                    cheminsRelatifs.push(nomFichierPhoto);
+                                } catch (ePhoto) {
+                                    cheminsRelatifs.push(nomFichierPhoto);
+                                }
+                            } else {
+                                cheminsRelatifs.push(photoItem);
+                            }
+                        }
+                        p.photos = cheminsRelatifs; // Remplacement par les liens de fichiers légers
+                    }
+                }
+            }
+
+            // 4. Envoi du fichier config.json ultra-léger (quelques Ko)
+            const base64Data = convertirTexteEnBase64Utf8(JSON.stringify(copieChantier, null, 2));
             const bodyPayload = {
-                message: `Auto-synchro : ${chantierActuel.nom}`,
+                message: `Auto-synchro structure : ${chantierActuel.nom}`,
                 content: base64Data
             };
             if (shaDistant) bodyPayload.sha = shaDistant;
@@ -1075,7 +1132,7 @@
                 rafraichirTableauRemarques();
             } else {
                 const errDetail = await resPut.json().catch(() => ({}));
-                console.error("Échec PUT GitHub :", errDetail);
+                console.error("Échec PUT config.json :", errDetail);
                 mettreAJourBadgeSynchro('pending', 'Erreur d\'envoi');
             }
 
