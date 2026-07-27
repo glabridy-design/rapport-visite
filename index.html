@@ -21,6 +21,13 @@
         .nav-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; flex-wrap: wrap; }
         .btn-back { background: #5f6368; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         
+        /* Badges d'état de synchronisation */
+        .sync-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #e8f0fe; color: #1a73e8; border: 1px solid #b4cff7; }
+        .sync-status-badge.synced { background: #e6f4ea; color: #137333; border-color: #a8dab5; }
+        .sync-status-badge.pending { background: #fef7e0; color: #b06000; border-color: #fdd835; }
+        .sync-status-badge.syncing { background: #e8f0fe; color: #1a73e8; border-color: #aecbfa; }
+        .sync-status-badge.offline { background: #fce8e6; color: #c5221f; border: 1px solid #f5b7b1; }
+
         /* MENU DÉROULANT DES ACTIONS */
         .dropdown-container { position: relative; display: inline-block; }
         .btn-dropdown { background: #1a73e8; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
@@ -144,8 +151,8 @@
 
         @media screen and (max-width: 600px) {
             .app-container { margin: 0; padding: 12px; border-radius: 0; }
-            h1 { font-size: 18px; }
-            h2 { font-size: 15px; }
+            h1 { font-size: 20px; }
+            h2 { font-size: 17px; }
             .nav-bar { flex-direction: column; align-items: stretch; }
             .btn-back { width: 100%; text-align: center; }
             .dropdown-container { width: 100%; }
@@ -178,12 +185,10 @@
             #printTemplate { display: block !important; }
             .page-break { page-break-before: always; break-before: page; }
             
-            /* Compactage des titres en impression pour gagner de la hauteur */
             h1 { font-size: 13pt !important; margin: 5px 0 !important; border-bottom: 2px solid #333; padding-bottom: 2px; }
             h2 { font-size: 11pt !important; margin: 8px 0 4px 0 !important; border-bottom: 1px solid #333; padding-bottom: 2px; }
             h3 { font-size: 10pt !important; margin: 5px 0 !important; border-bottom: 1px solid #666; padding-bottom: 2px; }
 
-            /* CONTRAINTE SUR LES PLANS : Empêche le plan de déborder avec son titre */
             .plan-wrapper, .plan-container {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
@@ -191,7 +196,7 @@
             }
             
             .plan-img { 
-                max-height: 200mm !important; /* Laisse ~70mm pour le titre et les marges A4 */
+                max-height: 200mm !important;
                 width: auto !important;
                 max-width: 100% !important;
                 object-fit: contain !important;
@@ -236,7 +241,7 @@
 <div class="app-container">
 
     <div id="pageAccueil" class="section active">
-        <h1>Rapport Visite Site V1.0</h1>
+        <h1>Conducteur de Chantier PWA</h1>
         
         <div class="config-box">
             <strong>🔑 Synchronisation Multi-Appareil GitHub :</strong><br>
@@ -294,12 +299,19 @@
     <div id="pageChantierDetails" class="section">
         <div class="nav-bar">
             <button class="btn-back" onclick="changerPage('pageAccueil')">← Retour</button>
+
+            <!-- INDICE ET BADGE DE SYNCHRO DYNAMIQUE -->
+            <div id="syncStatusBadge" class="sync-status-badge synced">
+                <span id="syncStatusIcon">🟢</span>
+                <span id="syncStatusText">À jour</span>
+            </div>
             
             <div class="dropdown-container no-print">
                 <button class="btn-dropdown" onclick="basculerMenuActions(event)">⚙️ Actions &amp; Exports ▾</button>
                 <div id="dropdownMenuActions" class="dropdown-menu">
                     <button onclick="declencherImpression()">🖨️ Exporter en PDF</button>
-                    <button onclick="sauvegarderEtSynchroniser()">☁️ Synchro Structure Chantier (config.json)</button>
+                    <button onclick="forcerSynchroSmartManuelle()">☁️ Forcer la Synchronisation Smart</button>
+                    <button onclick="sauvegarderEtSynchroniser()">💾 Synchro Structure Chantier (config.json)</button>
                     <button onclick="exporterChantierEnFichierLocal()">💾 Exporter l'Affaire (.json)</button>
                     <button onclick="exporterRapportDuJourIncr()">⏏️ Exporter Visite du Jour (.zip / Cloud)</button>
                     <button onclick="document.getElementById('importHistoriquePucesInput').click(); fermerMenuActions();">📥 Fusionner un Rapport Local (.zip / .json)</button>
@@ -666,6 +678,10 @@
     let couleurPinceauPhoto = '#d93025';
     let taillePinceauPhoto = 5;
 
+    /* VARIABLES DU NOUVEAU MOTEUR DE SYNCHRONISATION SMART */
+    let estEnTrainDeSynchroniser = false;
+    let modificationsEnAttente = false;
+
     /* ==========================================================================
        1. MOTEUR INDEXEDDB
        ========================================================================== */
@@ -702,7 +718,7 @@
             const db = await ouvrirDB();
             const tx = db.transaction("chantiers", "readwrite");
             const store = tx.objectStore("chantiers");
-            store.clear();
+ store.clear();
             tableauChantiers.forEach(c => store.put(c));
         } catch(e) { console.error("Erreur IndexedDB :", e); }
     }
@@ -748,6 +764,15 @@
         await chargerCharteDepuisGitHub();
         initialiserModuleCroquisCanvas();
         initialiserModuleAnnotationPhoto();
+
+        // Événements d'état de connexion réseau
+        window.addEventListener('online', () => {
+            mettreAJourBadgeSynchro('pending', 'Connexion rétablie...');
+            planifierSynchroArrierePlan();
+        });
+        window.addEventListener('offline', () => {
+            mettreAJourBadgeSynchro('offline', 'Hors-ligne');
+        });
 
         document.addEventListener('click', function(e) {
             const dropdown = document.querySelector('.dropdown-container');
@@ -935,6 +960,162 @@
         chargerCharteDepuisGitHub();
     }
 
+    /* ==========================================================================
+       NOUVEAU MOTEUR DE SYNCHRONISATION SMART ET TRANSPARENTE
+       ========================================================================== */
+    function mettreAJourBadgeSynchro(etat, message) {
+        const badge = document.getElementById('syncStatusBadge');
+        const icon = document.getElementById('syncStatusIcon');
+        const text = document.getElementById('syncStatusText');
+
+        if (!badge || !icon || !text) return;
+
+        badge.className = "sync-status-badge " + etat;
+
+        if (etat === "synced") {
+            icon.innerText = "🟢";
+            text.innerText = message || "À jour";
+        } else if (etat === "pending") {
+            icon.innerText = "🟠";
+            text.innerText = message || "En attente";
+        } else if (etat === "syncing") {
+            icon.innerText = "🔄";
+            text.innerText = message || "Synchro...";
+        } else if (etat === "offline") {
+            icon.innerText = "🔴";
+            text.innerText = message || "Hors-ligne";
+        }
+    }
+
+    function notifierModificationLocale() {
+        modificationsEnAttente = true;
+        if (!navigator.onLine) {
+            mettreAJourBadgeSynchro('offline', 'Modif locale (Hors-ligne)');
+        } else {
+            mettreAJourBadgeSynchro('pending', 'En attente d\'envoi');
+            planifierSynchroArrierePlan();
+        }
+    }
+
+    let minuterieSynchro = null;
+    function planifierSynchroArrierePlan() {
+        if (minuterieSynchro) clearTimeout(minuterieSynchro);
+        minuterieSynchro = setTimeout(() => {
+            executerSynchronisationSmartArrierePlan();
+        }, 1500); // Lancement silencieux après 1.5s de pause
+    }
+
+    async function executerSynchronisationSmartArrierePlan() {
+        if (estEnTrainDeSynchroniser || !chantierActuel) return;
+        if (!navigator.onLine) {
+            mettreAJourBadgeSynchro('offline', 'Hors-ligne');
+            return;
+        }
+
+        const { user, repo, token } = obtenirIdentifiantsGitHub();
+        if (!user || !repo || !token) {
+            mettreAJourBadgeSynchro('offline', 'Clé GitHub absente');
+            return;
+        }
+
+        estEnTrainDeSynchroniser = true;
+        mettreAJourBadgeSynchro('syncing', 'Synchronisation...');
+
+        try {
+            const nomDossier = obtenirNomDossierChantier(chantierActuel.nom);
+            const urlConfig = `https://api.github.com/repos/${user}/${repo}/contents/${nomDossier}/config.json`;
+
+            // 1. Récupération du fichier distant pour comparaison
+            let distantChantier = null;
+            let shaDistant = null;
+
+            const resGet = await fetch(`${urlConfig}?t=${Date.now()}`, {
+                headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
+                cache: "no-store"
+            });
+
+            if (resGet.ok) {
+                const dataJson = await resGet.json();
+                shaDistant = dataJson.sha;
+                const contentDecoded = decodeURIComponent(escape(atob(dataJson.content.replace(/\n/g, ''))));
+                distantChantier = JSON.parse(contentDecoded);
+            }
+
+            // 2. Fusion intelligente (Smart Merge) des puces locales et distantes
+            if (distantChantier && distantChantier.puces) {
+                fusionnerChantiersSmart(chantierActuel, distantChantier);
+            }
+
+            // 3. Envoi du fichier fusionné mis à jour vers GitHub
+            const base64Data = convertirTexteEnBase64Utf8(JSON.stringify(chantierActuel, null, 2));
+            const bodyPayload = {
+                message: `Auto-synchro : ${chantierActuel.nom}`,
+                content: base64Data
+            };
+            if (shaDistant) bodyPayload.sha = shaDistant;
+
+            const resPut = await fetch(urlConfig, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${token}`,
+                    "Accept": "application/vnd.github.v3+json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(bodyPayload)
+            });
+
+            if (resPut.ok) {
+                modificationsEnAttente = false;
+                mettreAJourBadgeSynchro('synced', 'À jour');
+                await sauvegarderUnChantierDansIndexedDB(chantierActuel);
+                rafraichirPucesGraphiques();
+                rafraichirTableauRemarques();
+            } else {
+                mettreAJourBadgeSynchro('pending', 'Erreur serveur');
+            }
+
+        } catch (e) {
+            console.error("Erreur synchro arrière-plan :", e);
+            mettreAJourBadgeSynchro('pending', 'Synchro différée');
+        } finally {
+            estEnTrainDeSynchroniser = false;
+        }
+    }
+
+    function fusionnerChantiersSmart(local, distant) {
+        if (!distant || !distant.puces) return;
+
+        const mapPuces = new Map();
+
+        // Insère les puces locales dans la map
+        (local.puces || []).forEach(p => mapPuces.set(p.id, p));
+
+        // Compare avec les puces distantes par horodatage (updatedAt)
+        (distant.puces || []).forEach(pDistant => {
+            if (!mapPuces.has(pDistant.id)) {
+                mapPuces.set(pDistant.id, pDistant);
+            } else {
+                const pLocal = mapPuces.get(pDistant.id);
+                const timeLocal = pLocal.updatedAt || 0;
+                const timeDistant = pDistant.updatedAt || 0;
+
+                // Garde la version la plus récente
+                if (timeDistant > timeLocal) {
+                    mapPuces.set(pDistant.id, pDistant);
+                }
+            }
+        });
+
+        local.puces = Array.from(mapPuces.values());
+        local.puces.sort((a,b) => (a.numero || 0) - (b.numero || 0));
+    }
+
+    function forcerSynchroSmartManuelle() {
+        fermerMenuActions();
+        if (!chantierActuel) return alert("Veuillez d'abord sélectionner un chantier.");
+        executerSynchronisationSmartArrierePlan();
+    }
+
     /* SYNCHRONISATION DU CHANTIER COMPLET FIXE DANS Nom_Chantier/config.json */
     async function sauvegarderEtSynchroniser() {
         fermerMenuActions();
@@ -948,50 +1129,7 @@
         await sauvegarderUnChantierDansIndexedDB(chantierActuel);
         rafraichirVueAccueil();
 
-        const { user, repo, token } = obtenirIdentifiantsGitHub();
-        if(!user || !repo || !token) return alert("Sauvegardé uniquement en local. Connectez votre compte GitHub pour la synchro Cloud.");
-
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${nomDossier}/config.json`;
-
-        try {
-            const contentBase64 = convertirTexteEnBase64Utf8(JSON.stringify(chantierActuel, null, 2));
-            let sha = null;
-
-            const resCheck = await fetch(`${url}?t=${Date.now()}`, { 
-                headers: { 
-                    "Authorization": `Bearer ${token}`,
-                    "Accept": "application/vnd.github.v3+json"
-                },
-                cache: "no-store"
-            });
-
-            if(resCheck.status === 200) {
-                const fileInfo = await resCheck.json();
-                if(fileInfo && fileInfo.sha) sha = fileInfo.sha;
-            }
-
-            const bodyData = { 
-                message: `Mise à jour structure chantier : ${chantierActuel.nom}`, 
-                content: contentBase64 
-            };
-            if(sha) bodyData.sha = sha;
-
-            const resPush = await fetch(url, {
-                method: "PUT",
-                headers: { 
-                    "Authorization": `Bearer ${token}`, 
-                    "Accept": "application/vnd.github.v3+json",
-                    "Content-Type": "application/json" 
-                },
-                body: JSON.stringify(bodyData)
-            });
-
-            if(resPush.ok) alert(`☁️ Structure du chantier "${chantierActuel.nom}" synchronisée avec succès (${nomDossier}/config.json) !`);
-            else {
-                const errJson = await resPush.json();
-                alert(`⚠️ Erreur Cloud GitHub (${resPush.status}) : ${errJson.message || 'Échec'}`);
-            }
-        } catch(e) { alert("Erreur : " + e.message); }
+        executerSynchronisationSmartArrierePlan();
     }
 
     function exporterChantierEnFichierLocal() {
@@ -1349,6 +1487,7 @@
             if(!p.photos) p.photos = [];
             if(!p.taches) p.taches = [];
             p.statut = normaliserStatutPuce(p);
+            p.updatedAt = Date.now();
         });
 
         chantierActuel.puces = [...chantierActuel.puces, ...pucesAInjecter];
@@ -1365,6 +1504,7 @@
 
         chargerPlanEtPucesDuNiveauActuel();
         rafraichirVueNotes();
+        notifierModificationLocale();
         alert(`🎯 Succès ! ${pucesAInjecter.length} puces et ${notesAInjecter.length} note(s) ont été fusionnées sur vos plans.`);
     }
 
@@ -1415,6 +1555,7 @@
                 summaryTasksRepliees = {};
 
                 dessinerPlanningGantt();
+                notifierModificationLocale();
                 alert(`📅 Succès ! Planning importé : ${listeTachesParsees.length} tâches chargées.`);
             } catch(err) {
                 alert("❌ Erreur de lecture du fichier XML. Assurez-vous d'avoir enregistré sous le format 'XML Microsoft Project' (.xml).");
@@ -1516,6 +1657,8 @@
         document.getElementById(`progressBarVisual-${indexTableau}`).style.width = valEntiere + "%";
         document.getElementById(`progressTextPercent-${indexTableau}`).innerText = valEntiere;
         document.getElementById(`progressBadgeLive-${indexTableau}`).innerText = valEntiere + "%";
+        
+        notifierModificationLocale();
     }
 
     async function sauvegarderAvancementsGanttEnLocal() {
@@ -1526,6 +1669,7 @@
         await sauvegarderUnChantierDansIndexedDB(chantierActuel);
         
         dessinerPlanningGantt();
+        notifierModificationLocale();
         alert("💾 Vos modifications d'avancement de planning ont été enregistrées avec succès !");
     }
 
@@ -1545,6 +1689,7 @@
                 await sauvegarderUnChantierDansIndexedDB(chantierActuel);
                 
                 dessinerPlanningGantt(); 
+                notifierModificationLocale();
                 alert("🗑️ Le planning a été entièrement effacé de ce chantier ! Vous pouvez à présent charger un nouveau fichier .xml propre.");
             }
         }
@@ -1586,6 +1731,7 @@
         planDirectTerrainBase64 = "";
 
         chargerPlanEtPucesDuNiveauActuel();
+        notifierModificationLocale();
         alert(`✅ Nouveau niveau "${nomNiv}" injecté avec succès !`);
     }
 
@@ -1793,6 +1939,9 @@
         rafraichirVueNotes();
         dessinerPlanningGantt();
         changerPage('pageChantierDetails');
+
+        // Déclencher la vérification et fusion automatique en arrière-plan
+        executerSynchronisationSmartArrierePlan();
     }
 
     /* GESTION DES NOTES ET LIAISON PUCE */
@@ -1902,6 +2051,7 @@
         
         await sauvegarderUnChantierDansIndexedDB(chantierActuel);
         if(rafraichirRendu) rafraichirVueNotes();
+        notifierModificationLocale();
     }
 
     /* MOTEUR DE DESSIN VECTORIEL SVG */
@@ -2208,7 +2358,14 @@
         
         if (puceSelectionneeId !== null) {
             let p = chantierActuel.puces.find(p => p.id === puceSelectionneeId);
-            if(p) { p.x = x; p.y = y; rafraichirPucesGraphiques(); puceSelectionneeId = null; return; }
+            if(p) { 
+                p.x = x; p.y = y; 
+                p.updatedAt = Date.now();
+                rafraichirPucesGraphiques(); 
+                puceSelectionneeId = null; 
+                notifierModificationLocale();
+                return; 
+            }
         }
         const num = chantierActuel.puces.length + 1;
         const nPuce = { 
@@ -2222,10 +2379,12 @@
             taches: [], 
             entreprises: [], 
             dateCreation: new Date().toLocaleDateString('fr-FR'), 
+            updatedAt: Date.now(),
             statut: "active" 
         };
         chantierActuel.puces.push(nPuce);
         rafraichirPucesGraphiques(); selectionnerPuce(nPuce.id);
+        notifierModificationLocale();
     }
 
     function selectionnerPuceDepuisTableau(idPuce) {
@@ -2442,6 +2601,7 @@
             p.entreprises = Array.from(document.querySelectorAll('#zoneEntreprisesPuceCheckboxes input:checked')).map(i => i.value);
             p.statut = statutPuceTemporaire;
             p.resolue = (statutPuceTemporaire === "resolue");
+            p.updatedAt = Date.now();
 
             document.getElementById('zoneSaisiePuce').style.display = 'none'; puceSelectionneeId = null;
             rafraichirTableauRemarques(); rafraichirPucesGraphiques();
@@ -2450,6 +2610,7 @@
             if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
             
             await sauvegarderUnChantierDansIndexedDB(chantierActuel);
+            notifierModificationLocale();
         }
     }
     
@@ -2463,6 +2624,7 @@
         if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
         
         await sauvegarderUnChantierDansIndexedDB(chantierActuel);
+        notifierModificationLocale();
     }
     
     function rafraichirTableauRemarques() {
@@ -2536,6 +2698,7 @@
                 const idx = listeTousChantiers.findIndex(c => c.id == chantierActuel.id);
                 if(idx !== -1) listeTousChantiers[idx] = chantierActuel;
                 await sauvegarderUnChantierDansIndexedDB(chantierActuel);
+                notifierModificationLocale();
             }
         }
     }
