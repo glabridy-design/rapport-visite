@@ -718,7 +718,7 @@
             const db = await ouvrirDB();
             const tx = db.transaction("chantiers", "readwrite");
             const store = tx.objectStore("chantiers");
- store.clear();
+            store.clear();
             tableauChantiers.forEach(c => store.put(c));
         } catch(e) { console.error("Erreur IndexedDB :", e); }
     }
@@ -961,7 +961,7 @@
     }
 
     /* ==========================================================================
-       NOUVEAU MOTEUR DE SYNCHRONISATION SMART ET TRANSPARENTE
+       NOUVEAU MOTEUR DE SYNCHRONISATION SMART ET TRANSPARENTE (AVEC GESTION DU 404)
        ========================================================================== */
     function mettreAJourBadgeSynchro(etat, message) {
         const badge = document.getElementById('syncStatusBadge');
@@ -1025,10 +1025,10 @@
             const nomDossier = obtenirNomDossierChantier(chantierActuel.nom);
             const urlConfig = `https://api.github.com/repos/${user}/${repo}/contents/${nomDossier}/config.json`;
 
-            // 1. Récupération du fichier distant pour comparaison
             let distantChantier = null;
             let shaDistant = null;
 
+            // 1. Tentative de lecture du fichier distant
             const resGet = await fetch(`${urlConfig}?t=${Date.now()}`, {
                 headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
                 cache: "no-store"
@@ -1039,14 +1039,17 @@
                 shaDistant = dataJson.sha;
                 const contentDecoded = decodeURIComponent(escape(atob(dataJson.content.replace(/\n/g, ''))));
                 distantChantier = JSON.parse(contentDecoded);
+            } else if (resGet.status !== 404) {
+                // Si l'erreur est différente de 404 (ex: 401 Unauthorized), on lève une exception
+                throw new Error("Erreur HTTP GitHub " + resGet.status);
             }
 
-            // 2. Fusion intelligente (Smart Merge) des puces locales et distantes
+            // 2. Fusion intelligente des puces si le fichier existait déjà
             if (distantChantier && distantChantier.puces) {
                 fusionnerChantiersSmart(chantierActuel, distantChantier);
             }
 
-            // 3. Envoi du fichier fusionné mis à jour vers GitHub
+            // 3. Envoi du fichier fusionné ou création initiale sur GitHub
             const base64Data = convertirTexteEnBase64Utf8(JSON.stringify(chantierActuel, null, 2));
             const bodyPayload = {
                 message: `Auto-synchro : ${chantierActuel.nom}`,
@@ -1071,12 +1074,14 @@
                 rafraichirPucesGraphiques();
                 rafraichirTableauRemarques();
             } else {
-                mettreAJourBadgeSynchro('pending', 'Erreur serveur');
+                const errDetail = await resPut.json().catch(() => ({}));
+                console.error("Échec PUT GitHub :", errDetail);
+                mettreAJourBadgeSynchro('pending', 'Erreur d\'envoi');
             }
 
         } catch (e) {
             console.error("Erreur synchro arrière-plan :", e);
-            mettreAJourBadgeSynchro('pending', 'Synchro différée');
+            mettreAJourBadgeSynchro('pending', 'Erreur connexion');
         } finally {
             estEnTrainDeSynchroniser = false;
         }
@@ -2747,7 +2752,6 @@
                 const blockNiveau = document.createElement('div'); 
                 blockNiveau.style.marginBottom = "20px";
                 
-                // Saut de page automatique après chaque plan (sauf le tout dernier)
                 if (idxNiveau < chantierActuel.niveaux.length - 1) {
                     blockNiveau.style.pageBreakAfter = "always";
                     blockNiveau.style.breakAfter = "page";
