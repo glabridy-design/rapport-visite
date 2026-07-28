@@ -71,8 +71,8 @@
       "y": 87.26147902581639,
       "commentaire": "Nettoyer suite intervention",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_125_photo_1.avif",
+        "photos/puce_125_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -92,7 +92,7 @@
       "y": 86.76029131535671,
       "commentaire": "Nettoyage après intervention",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_126_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -131,7 +131,7 @@
       "y": 70.72228458064684,
       "commentaire": "Procéder au nettoyage a la fin des interventions",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_128_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "24/07/2026",
@@ -149,10 +149,10 @@
       "y": 84.50494661828813,
       "commentaire": "Revoir mise en place Bastin pour facilité accèssibilité pour reprise de ferme",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_129_photo_1.avif",
+        "photos/puce_129_photo_2.avif",
+        "photos/puce_129_photo_3.avif",
+        "photos/puce_129_photo_4.avif"
       ],
       "entreprises": [
         "Bonvoisin"
@@ -172,8 +172,8 @@
       "y": 86.50969746012687,
       "commentaire": "Réaliser étaiement et poursuivre reprise de ferme",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_130_photo_1.avif",
+        "photos/puce_130_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -194,7 +194,7 @@
       "y": 83.92022762275182,
       "commentaire": "Réaliser escalier accès technique\nCôté prises",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_131_photo_1.avif"
       ],
       "entreprises": [
         "UTB"
@@ -214,8 +214,8 @@
       "y": 84.17082147798168,
       "commentaire": "Sondage realises",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_132_photo_1.avif",
+        "photos/puce_132_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -235,7 +235,7 @@
       "y": 68.21634602834843,
       "commentaire": "Tracé réalisé, empêchement a venir",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_133_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -255,8 +255,8 @@
       "y": 62.703281213291916,
       "commentaire": "Mur en aglos blancheur en cours de montage",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_134_photo_1.avif",
+        "photos/puce_134_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -276,9 +276,9 @@
       "y": 78.82481923307839,
       "commentaire": "Opération de dépose de Zinc OK\nBardage Bois en cours de refection\nPente de toit en cours de réfection\nAttention, Réaliser bâchage en cas de pluie",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_135_photo_1.avif",
+        "photos/puce_135_photo_2.avif",
+        "photos/puce_135_photo_3.avif"
       ],
       "entreprises": [
         "UTB"
@@ -298,7 +298,7 @@
       "y": 75.8176929703203,
       "commentaire": "Reprise de l’imposte réalisé",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_136_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -318,7 +318,7 @@
       "y": 76.98713096139288,
       "commentaire": "Passage Joret pour chiffrage plafond bois, préciser besoin technique",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_137_photo_1.avif"
       ],
       "entreprises": [
         "Joret"
@@ -338,7 +338,7 @@
       "y": 77.65538124200579,
       "commentaire": "Trêve réalisé pour implantation plancher technique..",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_138_photo_1.avif"
       ],
       "entreprises": [
         "Gamma Industrie"
@@ -358,7 +358,7 @@
       "y": 66.54572032681615,
       "commentaire": "Curage à terminer.\n",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_139_photo_1.avif"
       ],
       "entreprises": [
         "Greenway"
@@ -378,7 +378,7 @@
       "y": 66.04453261635646,
       "commentaire": "Évacuer matériel exploitation",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_140_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -414,10 +414,10 @@
       "y": 85.08966561382442,
       "commentaire": "Ouverture réalisée, \nProcéder étaiement et\nReprendre ferme escalier 4 URGENT",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_142_photo_1.avif",
+        "photos/puce_142_photo_2.avif",
+        "photos/puce_142_photo_3.avif",
+        "photos/puce_142_photo_4.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -438,7 +438,7 @@
       "y": 85.75791589443735,
       "commentaire": "Attention stockage , évacuer les elements",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_143_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -456,7 +456,7 @@
       "y": 87.76266673627607,
       "commentaire": "ADM déposer fenêtre\n\nLhullier reprendre linteau",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_144_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -477,7 +477,7 @@
       "y": 87.4285415959696,
       "commentaire": "Chêneau déposer escalier 4",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_145_photo_1.avif"
       ],
       "entreprises": [
         "UTB"
@@ -497,7 +497,7 @@
       "y": 84.75554047351798,
       "commentaire": "Réparation escalier à réaliser\nTransmettre besoins Bonvoisin",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_146_photo_1.avif"
       ],
       "entreprises": [
         "SNM"
@@ -517,7 +517,7 @@
       "y": 84.67200918844135,
       "commentaire": "Démonter échafaudage pour réalisation escalier",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_147_photo_1.avif"
       ],
       "entreprises": [
         "Bonvoisin",
@@ -538,7 +538,7 @@
       "y": 79.99425722415097,
       "commentaire": "Étaiement et études de reprise des fermes menée.",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_148_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -556,7 +556,7 @@
       "y": 87.17794774073977,
       "commentaire": "Nettoyer après intervention et évacuer gravas",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_149_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -574,9 +574,9 @@
       "y": 86.00850974966718,
       "commentaire": "Est-ce qu’elle a coulé en place des coffrets et reprise de poteaux et coulage du corbeau réalisé",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_150_photo_1.avif",
+        "photos/puce_150_photo_2.avif",
+        "photos/puce_150_photo_3.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -596,7 +596,7 @@
       "y": 78.32363152261871,
       "commentaire": "Quid reprise de la tenture",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_151_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -614,7 +614,7 @@
       "y": 87.4285415959696,
       "commentaire": "Ouverture OK, réaliser étaiement pour\nsuite intervention SNM\nTest arrachement mercredi30",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_152_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -635,7 +635,7 @@
       "y": 89.26622986765513,
       "commentaire": "Opération de reprise sur façade a réalisé",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_153_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -671,7 +671,7 @@
       "y": 69.88697172988071,
       "commentaire": "Merule traitement à finir",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_155_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -689,7 +689,7 @@
       "y": 70.22109687018715,
       "commentaire": "Merule traitement à finir",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_156_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -707,7 +707,7 @@
       "y": 86.25910360489702,
       "commentaire": "Merule traitement à finir",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_157_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -725,7 +725,7 @@
       "y": 75.23297397478399,
       "commentaire": "FTM N° 1à réaliser",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_158_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -743,7 +743,7 @@
       "y": 88.93210472734866,
       "commentaire": "Opération de reprise de façade a réalisé",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_159_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -763,7 +763,7 @@
       "y": 84.00375890782846,
       "commentaire": "Préparation support a réaliser",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_160_photo_1.avif"
       ],
       "entreprises": [
         "HUE"
@@ -783,7 +783,7 @@
       "y": 88.34738573181237,
       "commentaire": "Passage EP a réalisé ",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_161_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -804,7 +804,7 @@
       "y": 88.09679187658253,
       "commentaire": "Passage EP a réalisé",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_162_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -825,7 +825,7 @@
       "y": 87.9297293064293,
       "commentaire": "Reprendre passage EP",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_163_photo_1.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -846,7 +846,7 @@
       "y": 87.76266673627607,
       "commentaire": "L’Ouverture reprise ferme a traversé la façade",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_164_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -864,7 +864,7 @@
       "y": 87.84619802135268,
       "commentaire": "L’Ouverture de reprise de ferme a traversé la façade",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_165_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -882,8 +882,8 @@
       "y": 72.64350413740897,
       "commentaire": "Dalle support désenfumage OK",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_166_photo_1.avif",
+        "photos/puce_166_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier"
@@ -903,7 +903,7 @@
       "y": 80.74603878984051,
       "commentaire": "Depose zinc a venir faire lien paratonner\n",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_167_photo_1.avif"
       ],
       "entreprises": [
         "UTB",
@@ -924,7 +924,7 @@
       "y": 87.84619802135268,
       "commentaire": "Échafaudage première travée ok suite fin de semaine\n",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_168_photo_1.avif"
       ],
       "entreprises": [
         "Bonvoisin"
@@ -944,7 +944,7 @@
       "y": 70.72228458064684,
       "commentaire": "Dépose zinc \nChevron âge ok\nBardage ok",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_169_photo_1.avif"
       ],
       "entreprises": [],
       "dateCreation": "22/07/2026",
@@ -962,7 +962,7 @@
       "y": 66.2115951865097,
       "commentaire": "Conserver? Voir inter celfy ",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_170_photo_1.avif"
       ],
       "entreprises": [
         "Celfy"
@@ -982,7 +982,7 @@
       "y": 60.949124226683026,
       "commentaire": "Paratonnerre hors périmètre chantier intervention à definir",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_171_photo_1.avif"
       ],
       "entreprises": [
         "Art Protect'"
@@ -1002,7 +1002,7 @@
       "y": 79.57660079876791,
       "commentaire": "Ouverture chevron pour grutage  réalisé\nBonvoisin, prévoir intervention 20 et 21 aout",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_172_photo_1.avif"
       ],
       "entreprises": [
         "Bonvoisin",
@@ -1041,7 +1041,7 @@
       "y": 86.59322874520348,
       "commentaire": "Test d’arrachement mercredi",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_174_photo_1.avif"
       ],
       "entreprises": [
         "SNM"
@@ -1061,7 +1061,7 @@
       "y": 70.05403430003393,
       "commentaire": "Revoir fixation corniche",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_175_photo_1.avif"
       ],
       "entreprises": [
         "Ligne Finition"
@@ -1081,7 +1081,7 @@
       "y": 68.55047116865488,
       "commentaire": "Revoir fixation tiges filtre pour support polochon",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_176_photo_1.avif"
       ],
       "entreprises": [
         "Ligne Finition"
@@ -1101,7 +1101,7 @@
       "y": 86.84382260043331,
       "commentaire": "Reprise panne métallique ",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_177_photo_1.avif"
       ],
       "entreprises": [
         "SNM"
@@ -1121,7 +1121,7 @@
       "y": 79.82719465399775,
       "commentaire": "Reprise charpente en cours",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_178_photo_1.avif"
       ],
       "entreprises": [
         "UTB"
@@ -1141,7 +1141,7 @@
       "y": 86.25910360489702,
       "commentaire": "Panne métallique changee",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_179_photo_1.avif"
       ],
       "entreprises": [
         "SNM"
@@ -1161,8 +1161,8 @@
       "y": 69.3022527343444,
       "commentaire": "Découverte ferme corrodée,poursuivre investigations",
       "photos": [
-        "data:image/avif;base64,",
-        "data:image/avif;base64,"
+        "photos/puce_180_photo_1.avif",
+        "photos/puce_180_photo_2.avif"
       ],
       "entreprises": [
         "Lhullier",
@@ -1184,7 +1184,7 @@
       "y": 72.8940979926388,
       "commentaire": "Réparation charpente realise",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_181_photo_1.avif"
       ],
       "entreprises": [
         "UTB"
@@ -1204,7 +1204,7 @@
       "y": 70.97287843587668,
       "commentaire": "Correction pente réalisé bardage en cours",
       "photos": [
-        "data:image/avif;base64,"
+        "photos/puce_182_photo_1.avif"
       ],
       "entreprises": [
         "UTB"
